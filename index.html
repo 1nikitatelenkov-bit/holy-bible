@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Holy Bible — for Meta Display glasses</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{background:#14120f;display:flex;align-items:center;justify-content:center;
+       font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+       color:#ece7db;overflow:hidden}
+  #stage{width:100vmin;height:100vmin;display:flex;flex-direction:column;gap:.8vmin;
+         padding:1.2vmin;background:#26231f;position:relative}
+  /* header */
+  #topbar{display:flex;align-items:center;gap:1.2vmin;height:5.6vmin;padding:0 .4vmin}
+  #cross{width:4.8vmin;height:4.8vmin;border-radius:1vmin;background:#3a372f;flex:0 0 auto;
+         display:flex;align-items:center;justify-content:center;font-size:3vmin;color:#ffb300}
+  #ttl{flex:1;min-width:0}
+  #ttl .t1{font-size:2.7vmin;font-weight:700;white-space:nowrap}
+  #ttl .t2{font-size:1.9vmin;color:#a49f92;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #streakChip{display:flex;align-items:center;font-size:2.5vmin;font-weight:800;color:#ffb300;padding:0 1vmin;white-space:nowrap}
+  /* pickers */
+  #pickers{display:flex;gap:.8vmin}
+  .pick{flex:1;background:#3a372f;color:#ece7db;border:none;border-radius:1.1vmin;
+        padding:1.15vmin .6vmin;font-size:2.05vmin;font-weight:600;cursor:pointer;font-family:inherit;
+        white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pick:active{background:#4c483e}
+  .pick small{display:block;font-size:1.55vmin;color:#a49f92;font-weight:400}
+  /* reference bar */
+  #refbar{display:flex;align-items:center;gap:.8vmin}
+  #refLabel{flex:1;text-align:center;font-size:2.9vmin;font-weight:700;color:#ffb300;cursor:pointer;padding:.6vmin 0}
+  .navBtn{flex:0 0 auto;width:7vmin;background:#3a372f;color:#ece7db;border:none;border-radius:1.1vmin;
+          padding:1vmin 0;font-size:2.4vmin;font-weight:700;cursor:pointer;font-family:inherit}
+  .navBtn:active{background:#4c483e}
+  /* daily verse */
+  #dailyCard{background:#322f29;border-left:.7vmin solid #ffb300;border-radius:1vmin;
+             padding:1.1vmin 1.5vmin;cursor:pointer}
+  #dailyCard .dl{font-size:1.7vmin;font-weight:800;color:#ffb300;letter-spacing:.08em}
+  #dailyText{font-size:2.25vmin;line-height:1.45;color:#ece7db;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  #dailyRef{font-size:1.9vmin;color:#a49f92}
+  /* reader */
+  #reader{flex:1;overflow-y:auto;background:#211e1a;border-radius:1.2vmin;padding:1.6vmin 1.8vmin;
+          font-family:var(--readerFont,Georgia,serif);font-size:var(--readerSize,3.05vmin);line-height:1.62;
+          scroll-behavior:auto;-webkit-overflow-scrolling:touch}
+  #reader.rtl{direction:rtl;text-align:right}
+  .verse{border-radius:.7vmin;padding:.35vmin .7vmin;cursor:pointer}
+  .verse .vn{font-size:.62em;color:#ffb300;font-weight:700;vertical-align:super;margin-right:.5vmin;font-family:"Segoe UI",system-ui,sans-serif}
+  .verse.sel{box-shadow:inset 0 0 0 .35vmin #ffb300}
+  .verse.speaking{background:rgba(255,179,0,.20)}
+  .verse.hl-yellow{background:rgba(255,213,74,.40)}
+  .verse.hl-green{background:rgba(120,200,110,.38)}
+  .verse.hl-blue{background:rgba(100,170,255,.38)}
+  .verse.hl-pink{background:rgba(255,130,180,.38)}
+  .verse.hl-purple{background:rgba(180,130,255,.38)}
+  #readerMsg{font-size:2.4vmin;color:#a49f92;text-align:center;padding:6vmin 2vmin;line-height:1.6;font-family:"Segoe UI",system-ui,sans-serif}
+  /* verse action bar */
+  #verseBar{display:none;gap:.8vmin}
+  #verseBar.show{display:flex}
+  /* bottom controls */
+  #controls{display:flex;gap:.8vmin}
+  .btn{flex:1;background:#3a372f;color:#ece7db;border:none;border-radius:1.1vmin;
+       padding:1.2vmin 0;font-size:1.8vmin;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}
+  .searchBox{background:#211e1a;border:.3vmin solid #3a372f;border-radius:1.1vmin;color:#ece7db;
+             padding:1.3vmin 1.6vmin;font-size:2.4vmin;font-family:inherit;outline:none;width:100%}
+  .searchBox:focus{border-color:#ffb300}
+  .secLabel{font-size:1.9vmin;font-weight:800;color:#ffb300;letter-spacing:.07em;padding:.8vmin .4vmin .2vmin}
+  /* opening Bible book animation */
+  #splash{z-index:60;background:#1d1a16}
+  .bookScene{perspective:140vmin;display:flex;justify-content:center;padding:1vmin 0}
+  .book{position:relative;width:32vmin;height:23vmin;transform-style:preserve-3d;animation:bookShift 1.7s ease .35s forwards}
+  @keyframes bookShift{from{transform:translateX(0)}to{transform:translateX(50%)}}
+  .verse .jesus{font-style:italic}
+  #welcomeBook .book{width:27vmin;height:19.5vmin}
+  .bookPages{position:absolute;inset:.7vmin .7vmin .7vmin 1.4vmin;background:linear-gradient(180deg,#f5edd8,#e9dfc6);
+             border-radius:.6vmin 1.2vmin 1.2vmin .6vmin;box-shadow:0 1vmin 2.5vmin rgba(0,0,0,.5)}
+  .bookPages::after{content:'';position:absolute;inset:3.2vmin 2.6vmin;
+             background:repeating-linear-gradient(180deg,rgba(90,75,50,.32) 0 .45vmin,transparent .45vmin 1.6vmin)}
+  .bookPages::before{content:'✝';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+             font-size:5.5vmin;color:rgba(185,138,29,.55);z-index:1}
+  .bookPageFlip{position:absolute;inset:.5vmin .6vmin .5vmin 1vmin;background:linear-gradient(90deg,#efe6cf,#faf3df);
+             border-radius:.6vmin 1.2vmin 1.2vmin .6vmin;transform-origin:left center;z-index:2}
+  .pf1{animation:pageFlip 1s ease .6s forwards}
+  .pf2{animation:pageFlip 1s ease 1.05s forwards}
+  .bookCover{position:absolute;inset:0;background:linear-gradient(135deg,#4a2f1d,#2e1d12);border:.45vmin solid #c9a86a;
+             border-radius:.8vmin 1.4vmin 1.4vmin .8vmin;transform-origin:left center;z-index:3;
+             animation:coverOpen 1.7s ease .35s forwards;backface-visibility:hidden;
+             display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1vmin}
+  .coverCross{font-size:6vmin;color:#ffb300}
+  .coverTitle{font-size:2.9vmin;font-weight:800;color:#f5edd8;letter-spacing:.14em;text-align:center}
+  @keyframes coverOpen{from{transform:rotateY(0deg)}to{transform:rotateY(-158deg)}}
+  @keyframes pageFlip{from{transform:rotateY(0deg)}to{transform:rotateY(-152deg)}}
+  .btn:active{background:#4c483e}
+  .btn.on{background:#8a6d1f;color:#fff}
+  .btn.gold{background:#ffb300;color:#1d1b18}
+  #help{height:2.6vmin;display:flex;align-items:center;justify-content:center;
+        font-size:1.75vmin;color:#8f8b80;text-align:center}
+  /* sheets */
+  .sheet{position:absolute;inset:0;background:#26231f;z-index:30;display:none;flex-direction:column;gap:1vmin;padding:1.6vmin}
+  .sheet.open{display:flex}
+  .sheetHead{display:flex;align-items:center;gap:1.2vmin}
+  .sheetHead h2{font-size:3.4vmin;flex:1}
+  .xBtn{flex:0 0 auto;width:6vmin;height:6vmin;border-radius:1.1vmin;background:#3a372f;color:#ece7db;border:none;font-size:3vmin;cursor:pointer}
+  .listScroll{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:.8vmin}
+  .lrow{display:flex;align-items:center;gap:1.2vmin;background:#322f29;border-radius:1.2vmin;padding:1.4vmin 1.6vmin;cursor:pointer}
+  .lrow.cur{box-shadow:inset 0 0 0 .35vmin #ffb300}
+  .lmain{flex:1;min-width:0}
+  .ltitle{font-size:2.55vmin;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lsub{font-size:2vmin;color:#a49f92;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lbadge{font-size:2vmin;font-weight:800;color:#ffb300;white-space:nowrap}
+  .lempty{font-size:2.4vmin;color:#a49f92;text-align:center;padding:5vmin 2vmin;line-height:1.55}
+  #chapGrid{flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(6,1fr);gap:.8vmin;align-content:start}
+  .chapBtn{background:#322f29;color:#ece7db;border:none;border-radius:1vmin;padding:1.6vmin 0;
+           font-size:2.5vmin;font-weight:700;cursor:pointer;font-family:inherit}
+  .chapBtn.cur{background:#ffb300;color:#1d1b18}
+  /* settings */
+  .setGroup{background:#322f29;border-radius:1.2vmin;padding:1.5vmin 1.6vmin;display:flex;flex-direction:column;gap:1.1vmin}
+  .setLabel{font-size:2.3vmin;font-weight:800;color:#ffb300;letter-spacing:.04em}
+  .chipRow{display:flex;gap:.7vmin;flex-wrap:wrap}
+  .chip{flex:1;background:#3a372f;color:#ece7db;border:none;border-radius:1vmin;padding:1.1vmin .4vmin;
+        font-size:2vmin;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}
+  .chip.on{background:#ffb300;color:#1d1b18}
+  /* welcome / daily reward overlay */
+  .overlay{position:absolute;inset:0;background:rgba(18,16,13,.94);z-index:50;
+           display:none;flex-direction:column;align-items:center;justify-content:center;gap:2vmin;padding:3vmin;overflow:hidden}
+  .overlay.open{display:flex}
+  .overlay h2{font-size:4.6vmin;text-align:center;line-height:1.25;animation:popIn .5s cubic-bezier(.2,2.2,.4,1)}
+  .overlay p{font-size:2.6vmin;color:#cfccc2;text-align:center;line-height:1.5}
+  .overlay .big{font-size:2.9vmin;padding:1.5vmin 3.6vmin;border-radius:1.4vmin;background:#ffb300;color:#1d1b18;border:none;font-weight:800;cursor:pointer;font-family:inherit}
+  #welcomeDay{font-size:3.8vmin;font-weight:800;color:#ffb300;text-align:center;letter-spacing:.03em}
+  @keyframes popIn{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="topbar">
+    <div id="cross">✝</div>
+    <div id="ttl">
+      <div class="t1">Holy Bible</div>
+      <div class="t2" id="subTitle">Loading translations…</div>
+    </div>
+    <div id="streakChip" title="Day streak">Day 0</div>
+  </div>
+
+  <div id="pickers">
+    <button class="pick" id="langPick">🌐 Language<small id="langName">English</small></button>
+    <button class="pick" id="transPick">📖 Translation<small id="transName">…</small></button>
+  </div>
+
+  <div id="refbar">
+    <button class="navBtn" id="prevChap" title="Previous chapter">‹</button>
+    <div id="refLabel" title="Choose book & chapter">John 3</div>
+    <button class="navBtn" id="nextChap" title="Next chapter">›</button>
+  </div>
+
+  <div id="dailyCard">
+    <div class="dl">✦ VERSE OF THE DAY</div>
+    <div id="dailyText">Loading today's verse…</div>
+    <div id="dailyRef"></div>
+  </div>
+
+  <div id="reader"><div id="readerMsg">Loading Scripture…</div></div>
+
+  <div id="verseBar">
+    <button class="btn" id="vbHighlight">🎨 Highlight</button>
+    <button class="btn" id="vbSave">🔖 Save</button>
+    <button class="btn" id="vbListen">🔊 Listen</button>
+    <button class="btn" id="vbClear">✕ Clear</button>
+  </div>
+
+  <div id="controls">
+    <button class="btn" id="btnSearch">🔍 Search</button>
+    <button class="btn" id="btnListen">🔊 Listen</button>
+    <button class="btn" id="btnScroll">⏬ Scroll</button>
+    <button class="btn" id="btnSaved">🔖 Saved</button>
+    <button class="btn" id="btnSettings">Aa Settings</button>
+  </div>
+  <div id="help">Tap a verse to highlight / save • Swipe or ↑ ↓ to move • Pinch / Enter to listen</div>
+
+  <!-- Language sheet -->
+  <div class="sheet" id="langSheet">
+    <div class="sheetHead"><h2>Language</h2><button class="xBtn" data-close="langSheet">✕</button></div>
+    <input class="searchBox" id="langSearch" type="text" placeholder="🔍 Search language…" autocomplete="off">
+    <div class="listScroll" id="langList"></div>
+  </div>
+
+  <!-- Translation sheet -->
+  <div class="sheet" id="transSheet">
+    <div class="sheetHead"><h2>Translation</h2><button class="xBtn" data-close="transSheet">✕</button></div>
+    <input class="searchBox" id="transSearch" type="text" placeholder="🔍 Search translation…" autocomplete="off">
+    <div class="listScroll" id="transList"></div>
+  </div>
+
+  <!-- Book sheet -->
+  <div class="sheet" id="bookSheet">
+    <div class="sheetHead"><h2>Book</h2><button class="xBtn" data-close="bookSheet">✕</button></div>
+    <input class="searchBox" id="bookSearch" type="text" placeholder="🔍 Search book…" autocomplete="off">
+    <div class="listScroll" id="bookList"></div>
+  </div>
+
+  <!-- Search sheet -->
+  <div class="sheet" id="searchSheet">
+    <div class="sheetHead"><h2>Search</h2><button class="xBtn" data-close="searchSheet">✕</button></div>
+    <input class="searchBox" id="verseSearch" type="text" placeholder="John 3:16 — or a word: love" autocomplete="off">
+    <button class="btn gold" id="verseSearchGo" style="flex:0 0 auto;padding:1.3vmin 0;font-size:2.3vmin">Search</button>
+    <div class="listScroll" id="searchResults"></div>
+  </div>
+
+  <!-- Chapter sheet -->
+  <div class="sheet" id="chapSheet">
+    <div class="sheetHead"><h2 id="chapTitle">Chapter</h2><button class="xBtn" data-close="chapSheet">✕</button></div>
+    <div id="chapGrid"></div>
+  </div>
+
+  <!-- Saved sheet -->
+  <div class="sheet" id="savedSheet">
+    <div class="sheetHead"><h2>Saved & highlighted</h2><button class="xBtn" data-close="savedSheet">✕</button></div>
+    <div class="listScroll" id="savedList"></div>
+  </div>
+
+  <!-- Settings sheet -->
+  <div class="sheet" id="settingsSheet">
+    <div class="sheetHead"><h2>Settings</h2><button class="xBtn" data-close="settingsSheet">✕</button></div>
+    <div class="listScroll">
+      <div class="setGroup">
+        <div class="setLabel">FONT</div>
+        <div class="chipRow" id="fontRow"></div>
+      </div>
+      <div class="setGroup">
+        <div class="setLabel">TEXT SIZE</div>
+        <div class="chipRow" id="sizeRow"></div>
+      </div>
+      <div class="setGroup">
+        <div class="setLabel">AUTOSCROLL</div>
+        <div class="chipRow">
+          <button class="chip" id="scrollToggle">Off</button>
+        </div>
+        <div class="setLabel" style="margin-top:.6vmin">SCROLL SPEED</div>
+        <div class="chipRow" id="speedRow"></div>
+      </div>
+      <div class="setGroup">
+        <div class="setLabel">LISTEN (TEXT-TO-SPEECH)</div>
+        <div class="chipRow">
+          <button class="chip" id="ttsPlay">▶ Read this chapter aloud</button>
+          <button class="chip" id="ttsStop">■ Stop</button>
+        </div>
+        <div class="lsub">Reads through the glasses / phone speakers, verse by verse.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Splash: opening Bible book -->
+  <div class="overlay open" id="splash">
+    <div id="splashBook"></div>
+    <h2>Holy Bible</h2>
+    <p>Thy word is a lamp unto my feet,<br>and a light unto my path.</p>
+  </div>
+
+  <!-- Daily reward overlay -->
+  <div class="overlay" id="welcomeOverlay">
+    <div id="welcomeBook"></div>
+    <h2 id="welcomeTitle">WOOHOO! YOU'RE BACK!</h2>
+    <div id="welcomeDay">THIS IS YOUR DAY 1</div>
+    <p id="welcomeVerse"></p>
+    <button class="big" id="welcomeBtn">Start reading</button>
+  </div>
+</div>
+<script>
+'use strict';
+(function(){
+/* ================= storage (localStorage with in-memory fallback) ================= */
+var memStore = {};
+var store = {
+  get: function(k, dflt){
+    try{ var v = localStorage.getItem(k); return v===null? dflt : JSON.parse(v); }
+    catch(e){ return (k in memStore)? memStore[k] : dflt; }
+  },
+  set: function(k, v){
+    memStore[k]=v;
+    try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){}
+  }
+};
+/* ================= data ================= */
+var BOOKS = [
+ ['Genesis',50,'GEN'],['Exodus',40,'EXO'],['Leviticus',27,'LEV'],['Numbers',36,'NUM'],['Deuteronomy',34,'DEU'],
+ ['Joshua',24,'JOS'],['Judges',21,'JDG'],['Ruth',4,'RUT'],['1 Samuel',31,'1SA'],['2 Samuel',24,'2SA'],
+ ['1 Kings',22,'1KI'],['2 Kings',25,'2KI'],['1 Chronicles',29,'1CH'],['2 Chronicles',36,'2CH'],['Ezra',10,'EZR'],
+ ['Nehemiah',13,'NEH'],['Esther',10,'EST'],['Job',42,'JOB'],['Psalms',150,'PSA'],['Proverbs',31,'PRO'],
+ ['Ecclesiastes',12,'ECC'],['Song of Solomon',8,'SNG'],['Isaiah',66,'ISA'],['Jeremiah',52,'JER'],['Lamentations',5,'LAM'],
+ ['Ezekiel',48,'EZK'],['Daniel',12,'DAN'],['Hosea',14,'HOS'],['Joel',3,'JOL'],['Amos',9,'AMO'],
+ ['Obadiah',1,'OBA'],['Jonah',4,'JON'],['Micah',7,'MIC'],['Nahum',3,'NAM'],['Habakkuk',3,'HAB'],
+ ['Zephaniah',3,'ZEP'],['Haggai',2,'HAG'],['Zechariah',14,'ZEC'],['Malachi',4,'MAL'],['Matthew',28,'MAT'],
+ ['Mark',16,'MRK'],['Luke',24,'LUK'],['John',21,'JHN'],['Acts',28,'ACT'],['Romans',16,'ROM'],
+ ['1 Corinthians',16,'1CO'],['2 Corinthians',13,'2CO'],['Galatians',6,'GAL'],['Ephesians',6,'EPH'],['Philippians',4,'PHP'],
+ ['Colossians',4,'COL'],['1 Thessalonians',5,'1TH'],['2 Thessalonians',3,'2TH'],['1 Timothy',6,'1TI'],['2 Timothy',4,'2TI'],
+ ['Titus',3,'TIT'],['Philemon',1,'PHM'],['Hebrews',13,'HEB'],['James',5,'JAS'],['1 Peter',5,'1PE'],
+ ['2 Peter',3,'2PE'],['1 John',5,'1JN'],['2 John',1,'2JN'],['3 John',1,'3JN'],['Jude',1,'JUD'],['Revelation',22,'REV']
+];
+/* 50 most common languages. bolls = substring in Bolls catalog group name, hello = HelloAO language names, iso3 = HelloAO language code */
+var LANGS = [
+ {id:'en',name:'English',native:'English',tts:'en-US',bolls:'english',hello:['English'],iso3:'eng'},
+ {id:'zh',name:'Chinese',native:'中文',tts:'zh-CN',bolls:'chinese',hello:['Chinese'],iso3:'cmn'},
+ {id:'hi',name:'Hindi',native:'हिन्दी',tts:'hi-IN',bolls:'hindi',hello:['Hindi'],iso3:'hin'},
+ {id:'es',name:'Spanish',native:'Español',tts:'es-ES',bolls:'spanish',hello:['Spanish'],iso3:'spa'},
+ {id:'fr',name:'French',native:'Français',tts:'fr-FR',bolls:'french',hello:['French'],iso3:'fra'},
+ {id:'ar',name:'Arabic',native:'العربية',tts:'ar-SA',bolls:'arabic',hello:['Arabic'],iso3:'arb',rtl:true},
+ {id:'bn',name:'Bengali',native:'বাংলা',tts:'bn-IN',bolls:null,hello:['Bangla'],iso3:'ben'},
+ {id:'pt',name:'Portuguese',native:'Português',tts:'pt-PT',bolls:'portuguese',hello:['Portuguese'],iso3:'por'},
+ {id:'ru',name:'Russian',native:'Русский',tts:'ru-RU',bolls:'russian',hello:['Russian'],iso3:'rus'},
+ {id:'uk',name:'Ukrainian',native:'Українська',tts:'uk-UA',bolls:'ukrainian',hello:['Ukrainian'],iso3:'ukr'},
+ {id:'ur',name:'Urdu',native:'اردو',tts:'ur-PK',bolls:null,hello:['Urdu'],iso3:'urd',rtl:true},
+ {id:'id',name:'Indonesian',native:'Bahasa Indonesia',tts:'id-ID',bolls:'indonesian',hello:['Indonesian'],iso3:'ind'},
+ {id:'de',name:'German',native:'Deutsch',tts:'de-DE',bolls:'german',hello:['German'],iso3:'deu'},
+ {id:'ja',name:'Japanese',native:'日本語',tts:'ja-JP',bolls:'japanese',hello:['Japanese'],iso3:'jpn'},
+ {id:'sw',name:'Swahili',native:'Kiswahili',tts:'sw-KE',bolls:'swahili',hello:['Swahili'],iso3:'swa'},
+ {id:'mr',name:'Marathi',native:'मराठी',tts:'mr-IN',bolls:null,hello:['Marathi'],iso3:'mar'},
+ {id:'te',name:'Telugu',native:'తెలుగు',tts:'te-IN',bolls:null,hello:['Telugu'],iso3:'tel'},
+ {id:'tr',name:'Turkish',native:'Türkçe',tts:'tr-TR',bolls:null,hello:['Turkish'],iso3:'tur'},
+ {id:'ta',name:'Tamil',native:'தமிழ்',tts:'ta-IN',bolls:'tamil',hello:['Tamil'],iso3:'tam'},
+ {id:'vi',name:'Vietnamese',native:'Tiếng Việt',tts:'vi-VN',bolls:'vietnamese',hello:['Vietnamese'],iso3:'vie'},
+ {id:'tl',name:'Filipino',native:'Filipino',tts:'fil-PH',bolls:null,hello:['Filipino'],iso3:'tgl'},
+ {id:'ko',name:'Korean',native:'한국어',tts:'ko-KR',bolls:'korean',hello:['Korean'],iso3:'kor'},
+ {id:'fa',name:'Persian',native:'فارسی',tts:'fa-IR',bolls:'farsi',hello:['Persian'],iso3:'pes',rtl:true},
+ {id:'ha',name:'Hausa',native:'Hausa',tts:'ha-NG',bolls:null,hello:['Hausa'],iso3:'hau'},
+ {id:'it',name:'Italian',native:'Italiano',tts:'it-IT',bolls:'italian',hello:['Italian'],iso3:'ita'},
+ {id:'th',name:'Thai',native:'ไทย',tts:'th-TH',bolls:null,hello:['Thai'],iso3:'tha'},
+ {id:'pl',name:'Polish',native:'Polski',tts:'pl-PL',bolls:'polish',hello:['Polish'],iso3:'pol'},
+ {id:'nl',name:'Dutch',native:'Nederlands',tts:'nl-NL',bolls:'dutch',hello:['Dutch'],iso3:'nld'},
+ {id:'el',name:'Greek',native:'Ελληνικά',tts:'el-GR',bolls:'greek',hello:['Greek','Ancient Greek'],iso3:'ell'},
+ {id:'he',name:'Hebrew',native:'עברית',tts:'he-IL',bolls:'hebrew',hello:['Hebrew','Ancient Hebrew'],iso3:'heb',rtl:true},
+ {id:'sv',name:'Swedish',native:'Svenska',tts:'sv-SE',bolls:'swedish',hello:['Swedish'],iso3:'swe'},
+ {id:'no',name:'Norwegian',native:'Norsk',tts:'nb-NO',bolls:'norwegian',hello:['Norwegian Bokmål','Norwegian'],iso3:'nob'},
+ {id:'da',name:'Danish',native:'Dansk',tts:'da-DK',bolls:null,hello:['Danish'],iso3:'dan'},
+ {id:'fi',name:'Finnish',native:'Suomi',tts:'fi-FI',bolls:'finnish',hello:['Finnish'],iso3:'fin'},
+ {id:'cs',name:'Czech',native:'Čeština',tts:'cs-CZ',bolls:'czech',hello:['Czech'],iso3:'ces'},
+ {id:'hu',name:'Hungarian',native:'Magyar',tts:'hu-HU',bolls:'hungarian',hello:['Hungarian'],iso3:'hun'},
+ {id:'ro',name:'Romanian',native:'Română',tts:'ro-RO',bolls:'romanian',hello:['Romanian'],iso3:'ron'},
+ {id:'bg',name:'Bulgarian',native:'Български',tts:'bg-BG',bolls:null,hello:[],iso3:'bul'},
+ {id:'hr',name:'Croatian',native:'Hrvatski',tts:'hr-HR',bolls:null,hello:['Croatian'],iso3:'hrv'},
+ {id:'sr',name:'Serbian',native:'Српски',tts:'sr-RS',bolls:null,hello:['Serbian'],iso3:'srp'},
+ {id:'ms',name:'Malay',native:'Bahasa Melayu',tts:'ms-MY',bolls:null,hello:['Malay (individual language)','Malay'],iso3:'zlm'},
+ {id:'am',name:'Amharic',native:'አማርኛ',tts:'am-ET',bolls:null,hello:['Amharic'],iso3:'amh'},
+ {id:'yo',name:'Yoruba',native:'Yorùbá',tts:'yo-NG',bolls:null,hello:['Yoruba'],iso3:'yor'},
+ {id:'ig',name:'Igbo',native:'Igbo',tts:'ig-NG',bolls:null,hello:['Igbo'],iso3:'ibo'},
+ {id:'ml',name:'Malayalam',native:'മലയാളം',tts:'ml-IN',bolls:'malayalam',hello:['Malayalam'],iso3:'mal'},
+ {id:'kn',name:'Kannada',native:'ಕನ್ನಡ',tts:'kn-IN',bolls:'kannada',hello:['Kannada'],iso3:'kan'},
+ {id:'ne',name:'Nepali',native:'नेपाली',tts:'ne-NP',bolls:'nepali',hello:['Nepali'],iso3:'npi'},
+ {id:'be',name:'Belarusian',native:'Беларуская',tts:'be-BY',bolls:null,hello:['Belarusian'],iso3:'bel'},
+ {id:'sk',name:'Slovak',native:'Slovenčina',tts:'sk-SK',bolls:null,hello:['Slovak'],iso3:'slk'},
+ {id:'af',name:'Afrikaans',native:'Afrikaans',tts:'af-ZA',bolls:'afrikaans',hello:['Afrikaans'],iso3:'afr'}
+];
+var PREFERRED = { en:['KJV','BSB','WEB','NKJV'], ru:['SYNOD','NRT','RBS2'], uk:['UBIO','CUV23','UMT','HOM'],
+  es:['RV1960','NVI'], fr:['FRLSG','NBS'], de:['LUT','ELB'], pt:['ARA','OL'], zh:['CUV','CUNPS'], ko:['KRV'], ja:['NJB'] };
+var FONTS = [
+ {name:'Serif', stack:"Georgia,'Times New Roman',serif"},
+ {name:'Sans', stack:"system-ui,'Segoe UI',Roboto,Helvetica,sans-serif"},
+ {name:'Book', stack:"'Palatino Linotype','Book Antiqua',Palatino,serif"},
+ {name:'Mono', stack:"'Courier New',ui-monospace,monospace"},
+ {name:'Friendly', stack:"'Trebuchet MS','Segoe UI',sans-serif"}
+];
+var SIZES = [
+ {name:'Compact', css:'2.35vmin'}, {name:'Small', css:'2.7vmin'}, {name:'Medium', css:'3.05vmin'},
+ {name:'Large', css:'3.5vmin'}, {name:'Huge', css:'4vmin'}
+];
+var HL_COLORS = ['yellow','green','blue','pink','purple'];
+var DAILY = [
+ [43,3,16],[19,23,1],[1,1,1],[20,3,5],[23,41,10],[50,4,13],[6,1,9],[45,8,28],[24,29,11],[19,46,1],
+ [40,11,28],[43,1,1],[58,11,1],[19,118,24],[25,3,22],[55,1,7],[48,5,22],[49,2,8],[33,6,8],[5,31,8],
+ [19,91,1],[43,14,6],[45,15,13],[51,3,23],[23,40,31],[40,6,33],[46,13,4],[19,19,14],[36,3,17],[66,21,4]
+];
+var FALLBACK_JOHN3 = {
+ en:{trans:'KJV (offline sample)', verses:[[16,'For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.'],[17,'For God sent not his Son into the world to condemn the world; but that the world through him might be saved.']]},
+ ru:{trans:'Синодальный (offline sample)', verses:[[16,'Ибо так возлюбил Бог мир, что отдал Сына Своего Единородного, дабы всякий верующий в Него, не погиб, но имел жизнь вечную.'],[17,'Ибо не послал Бог Сына Своего в мир, чтобы судить мир, но чтобы мир спасен был чрез Него.']]},
+ uk:{trans:'Огієнко (offline sample)', verses:[[16,'Так бо Бог полюбив світ, що дав Сина Свого Однородженого, щоб кожен, хто вірує в Нього, не згинув, але мав життя вічне.'],[17,'Бо Бог не послав Свого Сина на світ, щоб Він світ засудив, але щоб через Нього світ спасся.']]}
+};
+/* ================= state ================= */
+function $(id){ return document.getElementById(id); }
+var settings = store.get('bibleDisplay.settings.v1', {});
+var S = {
+  langId: settings.langId || 'en',
+  trans: null,
+  book: settings.book || 43,
+  chapter: settings.chapter || 3,
+  booksList: null,
+  verses: [],
+  selectedVerse: null,
+  fontIdx: (settings.fontIdx!=null? settings.fontIdx : 0),
+  sizeIdx: (settings.sizeIdx!=null? settings.sizeIdx : 2),
+  scrollOn: false,
+  scrollSpeed: settings.scrollSpeed || 3,
+  speakingIdx: -1,
+  catalogsReady: false
+};
+var transByLang = {};   /* langId -> [{src,id,name}] */
+var highlights = store.get('bibleDisplay.highlights.v1', {});
+var savedVerses = store.get('bibleDisplay.saved.v1', []);
+var scrollTimer = null, speakRun = 0;
+
+function langOf(){ for(var i=0;i<LANGS.length;i++) if(LANGS[i].id===S.langId) return LANGS[i]; return LANGS[0]; }
+function normStr(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); }
+function matchScore(q, targets){
+  q = normStr(q).trim(); if(!q) return 0;
+  var best = -1;
+  targets.forEach(function(t){
+    var s = normStr(t); if(!s) return;
+    var sc = -1;
+    if(s.indexOf(q) === 0) sc = 0;
+    else if(s.indexOf(q) >= 0) sc = 1;
+    else { var i = 0; for(var j=0;j<s.length && i<q.length;j++){ if(s[j]===q[i]) i++; } if(i===q.length) sc = 2; }
+    if(sc>=0 && (best<0 || sc<best)) best = sc;
+  });
+  return best;
+}
+function orderedLangs(){
+  return LANGS.slice().sort(function(a,b){ return a.name.localeCompare(b.name); });
+}
+function bookMatch(q){
+  var bestBook = -1, bestScore = 99;
+  for(var i=0;i<BOOKS.length;i++){
+    var id = i+1;
+    var sc = matchScore(q, [bookName(id), BOOKS[i][0]]);
+    if(sc>=0 && sc<bestScore){ bestScore = sc; bestBook = id; }
+  }
+  return bestBook;
+}
+function saveSettings(){ store.set('bibleDisplay.settings.v1', { langId:S.langId, transSrc:S.trans?S.trans.src:null, transId:S.trans?S.trans.id:null, book:S.book, chapter:S.chapter, fontIdx:S.fontIdx, sizeIdx:S.sizeIdx, scrollSpeed:S.scrollSpeed }); }
+function verseKey(book, ch, v){ return (S.trans? S.trans.src+'|'+S.trans.id : 'none') + '|' + book + '|' + ch + '|' + v; }
+function bookName(bookId){
+  if(S.booksList){ for(var i=0;i<S.booksList.length;i++) if(S.booksList[i].bookid===bookId) return S.booksList[i].name; }
+  return BOOKS[bookId-1]? BOOKS[bookId-1][0] : 'Book ' + bookId;
+}
+function bookChapters(bookId){
+  if(S.booksList){ for(var i=0;i<S.booksList.length;i++) if(S.booksList[i].bookid===bookId) return S.booksList[i].chapters; }
+  return BOOKS[bookId-1][1];
+}
+function cleanText(html){
+  var raw = String(html||'')
+    .replace(/<S>[\s\S]*?<\/S>/gi, '')
+    .replace(/<sup>[\s\S]*?<\/sup>/gi, '')
+    .replace(/<br\s*\/?>/gi, ' ');
+  var d = document.createElement('div'); d.innerHTML = raw;
+  var t = d.textContent || '';
+  return t.replace(/\s+/g,' ').trim();
+}
+function aoFlatten(content, out){
+  if(!content) return;
+  for(var i=0;i<content.length;i++){
+    var it = content[i];
+    if(typeof it === 'string') out.push(it);
+    else if(it && typeof it === 'object'){
+      if(typeof it.text === 'string') out.push(it.text);
+      if(it.content) aoFlatten(it.content, out);
+    }
+  }
+}
+function aoSegments(content, jesus, out){
+  if(!content) return;
+  for(var i=0;i<content.length;i++){
+    var it = content[i];
+    if(typeof it === 'string'){ pushSeg(out, it, jesus); }
+    else if(it && typeof it === 'object'){
+      var j = jesus || it.wordsOfJesus === true;
+      if(typeof it.text === 'string') pushSeg(out, it.text, j);
+      if(it.content) aoSegments(it.content, j, out);
+    }
+  }
+}
+function pushSeg(out, text, jesus){
+  if(!text) return;
+  var last = out[out.length-1];
+  if(last && last.j === !!jesus) last.t += text;
+  else out.push({t:text, j:!!jesus});
+}
+/* ================= catalogs ================= */
+function buildCatalogs(bolls, ao){
+  LANGS.forEach(function(L){
+    var list = [];
+    if(bolls && L.bolls){
+      for(var i=0;i<bolls.length;i++){
+        if(String(bolls[i].language||'').toLowerCase().indexOf(L.bolls) >= 0){
+          bolls[i].translations.forEach(function(t){ if(['NIV2011','NIV','NIVUK','TNIV'].indexOf(t.short_name) < 0) list.push({src:'bolls', id:t.short_name, name:t.full_name}); });
+          break;
+        }
+      }
+    }
+    if(ao && ao.translations){
+      ao.translations.forEach(function(t){
+        var byName = L.hello.indexOf(t.languageEnglishName) >= 0;
+        var byCode = t.language === L.iso3;
+        if(byName || byCode) list.push({src:'ao', id:t.id, name:t.englishName || t.name || t.id});
+      });
+    }
+    var seenIds = {}, dedup = [];
+    list.forEach(function(t){ if(!seenIds[t.id]){ seenIds[t.id] = 1; dedup.push(t); } });
+    dedup.sort(function(a,b){ return String(a.name||a.id).localeCompare(String(b.name||b.id)); });
+    transByLang[L.id] = dedup;
+  });
+  S.catalogsReady = true;
+}
+function pickTranslation(){
+  var list = transByLang[S.langId] || [];
+  var wantSrc = settings.transSrc, wantId = settings.transId;
+  if(wantId){ for(var i=0;i<list.length;i++) if(list[i].id===wantId && list[i].src===wantSrc){ S.trans = list[i]; return; } }
+  var pref = PREFERRED[S.langId] || [];
+  for(var p=0;p<pref.length;p++){ for(var i=0;i<list.length;i++) if(list[i].id===pref[p]){ S.trans = list[i]; return; } }
+  S.trans = list.length? list[0] : null;
+}
+/* ================= fetching ================= */
+function fetchJSON(url){
+  return fetch(url).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); });
+}
+function loadBooks(){
+  S.booksList = null;
+  if(!S.trans) return Promise.resolve();
+  if(S.trans.src === 'bolls'){
+    return fetchJSON('https://bolls.life/get-books/' + encodeURIComponent(S.trans.id) + '/')
+      .then(function(rows){ S.booksList = rows.map(function(r){ return {bookid:r.bookid, name:r.name, chapters:r.chapters}; }); })
+      .catch(function(){ S.booksList = null; });
+  }
+  return fetchJSON('https://bible.helloao.org/api/' + encodeURIComponent(S.trans.id) + '/books.json')
+    .then(function(d){
+      S.booksList = (d.books||[]).map(function(b){ return {bookid:b.order, name:b.commonName||b.name, chapters:b.numberOfChapters, helloId:b.id}; })
+        .sort(function(a,b){ return a.bookid-b.bookid; });
+    })
+    .catch(function(){ S.booksList = null; });
+}
+function helloBookId(bookId){
+  if(S.booksList){ for(var i=0;i<S.booksList.length;i++) if(S.booksList[i].bookid===bookId && S.booksList[i].helloId) return S.booksList[i].helloId; }
+  return BOOKS[bookId-1][2];
+}
+function loadChapter(){
+  stopSpeak(); stopScroll();
+  S.selectedVerse = null; $('verseBar').classList.remove('show');
+  $('refLabel').textContent = bookName(S.book) + ' ' + S.chapter;
+  var reader = $('reader');
+  reader.innerHTML = '<div id="readerMsg">Loading ' + bookName(S.book) + ' ' + S.chapter + '…</div>';
+  if(!S.trans){ renderOffline('No translation is available yet for this language in the free catalogs.'); return; }
+  var p;
+  if(S.trans.src === 'bolls'){
+    p = fetchJSON('https://bolls.life/get-text/' + encodeURIComponent(S.trans.id) + '/' + S.book + '/' + S.chapter + '/')
+      .then(function(rows){ return rows.map(function(r){ return {v:r.verse, text:cleanText(r.text)}; }); });
+  } else {
+    p = fetchJSON('https://bible.helloao.org/api/' + encodeURIComponent(S.trans.id) + '/' + helloBookId(S.book) + '/' + S.chapter + '.json')
+      .then(function(d){
+        var out = [];
+        (d.chapter.content||[]).forEach(function(item){
+          if(item.type === 'verse'){
+            var segs = []; aoSegments(item.content, false, segs);
+            var txt = segs.map(function(s){ return s.t; }).join(' ').replace(/\s+/g,' ').trim();
+            out.push({v:item.number, text:txt, segs:segs});
+          }
+        });
+        return out;
+      });
+  }
+  p.then(function(verses){
+    if(!verses.length) throw new Error('empty');
+    S.verses = verses; renderVerses(); saveSettings();
+  }).catch(function(){ renderOffline('Could not load this chapter — check the connection on your phone.'); });
+}
+function renderOffline(msg){
+  var fb = FALLBACK_JOHN3[S.langId] || FALLBACK_JOHN3.en;
+  if(S.book===43 && S.chapter===3){
+    S.verses = fb.verses.map(function(x){ return {v:x[0], text:x[1]}; });
+    renderVerses();
+    $('subTitle').textContent = fb.trans;
+  } else {
+    S.verses = [];
+    $('reader').innerHTML = '<div id="readerMsg">' + msg + '</div>';
+  }
+}
+function renderVerses(){
+  var reader = $('reader');
+  var L = langOf();
+  reader.classList.toggle('rtl', !!L.rtl);
+  reader.innerHTML = '';
+  S.verses.forEach(function(vs){
+    var d = document.createElement('div');
+    d.className = 'verse'; d.setAttribute('data-v', vs.v);
+    var hl = highlights[verseKey(S.book, S.chapter, vs.v)];
+    if(hl) d.classList.add('hl-' + hl);
+    var num = document.createElement('span'); num.className='vn'; num.textContent = vs.v;
+    d.appendChild(num);
+    if(vs.segs && vs.segs.some(function(s){ return s.j; })){
+      var prevSeg = null;
+      vs.segs.forEach(function(s){
+        if(prevSeg && !/\s$/.test(prevSeg.t) && !/^\s/.test(s.t)) d.appendChild(document.createTextNode(' '));
+        if(s.j){ var em = document.createElement('span'); em.className = 'jesus'; em.textContent = s.t; d.appendChild(em); }
+        else d.appendChild(document.createTextNode(s.t));
+        prevSeg = s;
+      });
+    } else {
+      d.appendChild(document.createTextNode(vs.text));
+    }
+    d.addEventListener('click', function(){ selectVerse(vs.v, true); });
+    reader.appendChild(d);
+  });
+  reader.scrollTop = 0;
+  $('refLabel').textContent = bookName(S.book) + ' ' + S.chapter;
+}
+function selectVerse(v, showBar){
+  S.selectedVerse = v;
+  var els = $('reader').querySelectorAll('.verse');
+  els.forEach(function(el){
+    el.classList.toggle('sel', Number(el.getAttribute('data-v')) === v);
+    if(Number(el.getAttribute('data-v')) === v) el.scrollIntoView({block:'center'});
+  });
+  if(showBar) $('verseBar').classList.add('show');
+  var isSaved = savedVerses.some(function(s){ return s.key === verseKey(S.book, S.chapter, v); });
+  $('vbSave').textContent = isSaved? '🔖 Saved ✓' : '🔖 Save';
+}
+/* ================= highlight & save ================= */
+$('vbHighlight').addEventListener('click', function(){
+  if(S.selectedVerse==null) return;
+  var k = verseKey(S.book, S.chapter, S.selectedVerse);
+  var cur = highlights[k];
+  var next = !cur? HL_COLORS[0] : HL_COLORS[(HL_COLORS.indexOf(cur)+1) % (HL_COLORS.length+1)];
+  if(next && HL_COLORS.indexOf(next)>=0) highlights[k] = next; else delete highlights[k];
+  store.set('bibleDisplay.highlights.v1', highlights);
+  renderVerses(); selectVerse(S.selectedVerse, true);
+});
+$('vbSave').addEventListener('click', function(){
+  if(S.selectedVerse==null) return;
+  var k = verseKey(S.book, S.chapter, S.selectedVerse);
+  var idx = -1;
+  savedVerses.forEach(function(s,i){ if(s.key===k) idx=i; });
+  if(idx>=0){ savedVerses.splice(idx,1); }
+  else{
+    var txt = '';
+    S.verses.forEach(function(vs){ if(vs.v===S.selectedVerse) txt = vs.text; });
+    savedVerses.unshift({ key:k, src:S.trans.src, transId:S.trans.id, book:S.book, chapter:S.chapter, verse:S.selectedVerse,
+      ref: bookName(S.book) + ' ' + S.chapter + ':' + S.selectedVerse, text:txt, transName:S.trans.id });
+  }
+  store.set('bibleDisplay.saved.v1', savedVerses);
+  updateSavedBtn(); selectVerse(S.selectedVerse, true);
+});
+$('vbClear').addEventListener('click', function(){
+  S.selectedVerse = null; $('verseBar').classList.remove('show');
+  $('reader').querySelectorAll('.verse').forEach(function(el){ el.classList.remove('sel'); });
+});
+function updateSavedBtn(){ $('btnSaved').textContent = '🔖 Saved' + (savedVerses.length? ' ('+savedVerses.length+')' : ''); }
+/* ================= text-to-speech ================= */
+function speakFrom(idx){
+  if(!('speechSynthesis' in window)){ $('subTitle').textContent = 'Speech is not available on this device.'; return; }
+  stopSpeak();
+  var run = ++speakRun;
+  var L = langOf();
+  var rate = 0.8 + S.scrollSpeed * 0.08;
+  function next(i){
+    if(run !== speakRun) return;
+    if(i >= S.verses.length){ S.speakingIdx = -1; markSpeaking(); $('btnListen').textContent='🔊 Listen'; $('btnListen').classList.remove('on'); return; }
+    S.speakingIdx = i; markSpeaking();
+    var vs = S.verses[i];
+    var u = new SpeechSynthesisUtterance(vs.text);
+    u.lang = L.tts; u.rate = rate;
+    try{
+      var voices = speechSynthesis.getVoices();
+      for(var j=0;j<voices.length;j++){ if(voices[j].lang && voices[j].lang.toLowerCase().indexOf(L.tts.slice(0,2))===0){ u.voice = voices[j]; break; } }
+    }catch(e){}
+    u.onend = function(){ next(i+1); };
+    u.onerror = function(){ next(i+1); };
+    speechSynthesis.speak(u);
+  }
+  $('btnListen').textContent = '■ Stop'; $('btnListen').classList.add('on');
+  next(idx);
+}
+function markSpeaking(){
+  var els = $('reader').querySelectorAll('.verse');
+  els.forEach(function(el, i){
+    el.classList.toggle('speaking', i === S.speakingIdx);
+    if(i === S.speakingIdx) el.scrollIntoView({block:'center'});
+  });
+}
+function stopSpeak(){
+  speakRun++;
+  if('speechSynthesis' in window){ try{ speechSynthesis.cancel(); }catch(e){} }
+  S.speakingIdx = -1;
+  var els = $('reader').querySelectorAll('.verse');
+  els.forEach(function(el){ el.classList.remove('speaking'); });
+  $('btnListen').textContent = '🔊 Listen'; $('btnListen').classList.remove('on');
+}
+$('btnListen').addEventListener('click', function(){
+  if(S.speakingIdx >= 0){ stopSpeak(); return; }
+  var start = 0;
+  if(S.selectedVerse!=null){ S.verses.forEach(function(vs,i){ if(vs.v===S.selectedVerse) start=i; }); }
+  speakFrom(start);
+});
+$('vbListen').addEventListener('click', function(){
+  if(S.selectedVerse==null) return;
+  var start = 0; S.verses.forEach(function(vs,i){ if(vs.v===S.selectedVerse) start=i; });
+  speakFrom(start);
+});
+$('ttsPlay').addEventListener('click', function(){ closeSheet('settingsSheet'); speakFrom(0); });
+$('ttsStop').addEventListener('click', function(){ stopSpeak(); });
+/* ================= autoscroll ================= */
+function startScroll(){
+  stopScroll();
+  var speeds = {1:0.35, 2:0.7, 3:1.1, 4:1.8, 5:2.8};
+  var step = speeds[S.scrollSpeed] || 1.1;
+  scrollTimer = setInterval(function(){
+    var r = $('reader');
+    if(r.scrollTop + r.clientHeight >= r.scrollHeight - 2){ stopScroll(); syncScrollUI(); return; }
+    r.scrollTop += step;
+  }, 50);
+  S.scrollOn = true; syncScrollUI();
+}
+function stopScroll(){ if(scrollTimer){ clearInterval(scrollTimer); scrollTimer = null; } S.scrollOn = false; }
+function syncScrollUI(){
+  $('btnScroll').textContent = S.scrollOn? '⏸ Scroll' : '⏬ Scroll';
+  $('btnScroll').classList.toggle('on', S.scrollOn);
+  $('scrollToggle').textContent = S.scrollOn? 'On — tap to stop' : 'Off — tap to start';
+  $('scrollToggle').classList.toggle('on', S.scrollOn);
+  var row = $('speedRow');
+  row.querySelectorAll('.chip').forEach(function(c, i){ c.classList.toggle('on', i+1 === S.scrollSpeed); });
+}
+$('btnScroll').addEventListener('click', function(){ if(S.scrollOn){ stopScroll(); syncScrollUI(); } else startScroll(); });
+$('scrollToggle').addEventListener('click', function(){ if(S.scrollOn){ stopScroll(); syncScrollUI(); } else startScroll(); });
+/* ================= sheets ================= */
+function openSheet(id){ $(id).classList.add('open'); }
+function closeSheet(id){ $(id).classList.remove('open'); }
+document.querySelectorAll('[data-close]').forEach(function(b){
+  b.addEventListener('click', function(){ closeSheet(b.getAttribute('data-close')); });
+});
+function renderLangList(q){
+  var box = $('langList'); box.innerHTML = '';
+  var items = orderedLangs().map(function(L){ return {L:L, score: matchScore(q||'', [L.name, L.native, L.id])}; })
+    .filter(function(x){ return !q || x.score >= 0; });
+  if(q) items.sort(function(a,b){ return a.score-b.score || a.L.name.localeCompare(b.L.name); });
+  if(!items.length){ box.innerHTML = '<div class="lempty">No language matches that search.</div>'; return; }
+  items.forEach(function(x){
+    var L = x.L;
+    var list = transByLang[L.id];
+    var row = document.createElement('div');
+    row.className = 'lrow' + (L.id===S.langId? ' cur' : '');
+    var badge = !S.catalogsReady? '…' : (list && list.length? list.length + ' transl.' : 'soon');
+    row.innerHTML = '<div class="lmain"><div class="ltitle"></div><div class="lsub"></div></div><div class="lbadge"></div>';
+    row.querySelector('.ltitle').textContent = L.name;
+    row.querySelector('.lsub').textContent = L.native;
+    row.querySelector('.lbadge').textContent = badge;
+    row.addEventListener('click', function(){
+      if(list && !list.length){ return; }
+      S.langId = L.id; S.trans = null; settings.transId = null;
+      pickTranslation(); closeSheet('langSheet'); refreshChrome();
+      loadBooks().then(function(){ loadChapter(); loadDaily(); });
+    });
+    box.appendChild(row);
+  });
+}
+function renderTransList(q){
+  var box = $('transList'); box.innerHTML = '';
+  var list = transByLang[S.langId] || [];
+  if(!list.length){
+    box.innerHTML = '<div class="lempty">No free translation is available yet for this language.<br>Russian, Ukrainian and 47 other languages are fully live.</div>';
+    return;
+  }
+  var items = list.map(function(t){ return {t:t, score: matchScore(q||'', [t.id, t.name])}; })
+    .filter(function(x){ return !q || x.score >= 0; });
+  if(q) items.sort(function(a,b){ return a.score-b.score || String(a.t.name||a.t.id).localeCompare(String(b.t.name||b.t.id)); });
+  if(!items.length){ box.innerHTML = '<div class="lempty">No translation matches that search.</div>'; return; }
+  items.forEach(function(x){
+    var t = x.t;
+    var row = document.createElement('div');
+    row.className = 'lrow' + (S.trans && t.id===S.trans.id && t.src===S.trans.src? ' cur' : '');
+    row.innerHTML = '<div class="lmain"><div class="ltitle"></div><div class="lsub"></div></div><div class="lbadge"></div>';
+    row.querySelector('.ltitle').textContent = t.id;
+    row.querySelector('.lsub').textContent = t.name;
+    row.querySelector('.lbadge').textContent = t.src==='bolls'? 'Bolls' : 'HelloAO';
+    row.addEventListener('click', function(){
+      S.trans = t; closeSheet('transSheet'); refreshChrome();
+      loadBooks().then(function(){ loadChapter(); loadDaily(); });
+    });
+    box.appendChild(row);
+  });
+}
+function renderBookList(q){
+  var box = $('bookList'); box.innerHTML = '';
+  var items = BOOKS.map(function(b, i){
+    var id = i+1;
+    return {id:id, score: matchScore(q||'', [bookName(id), b[0]])};
+  }).filter(function(x){ return !q || x.score >= 0; });
+  if(q) items.sort(function(a,b){ return a.score-b.score || a.id-b.id; });
+  if(!items.length){ box.innerHTML = '<div class="lempty">No book matches that search.</div>'; return; }
+  var lastSection = null;
+  items.forEach(function(x){
+    var id = x.id;
+    if(!q){
+      var sec = id <= 39? 'OLD TESTAMENT' : 'NEW TESTAMENT';
+      if(sec !== lastSection){
+        lastSection = sec;
+        var lab = document.createElement('div'); lab.className = 'secLabel'; lab.textContent = sec;
+        box.appendChild(lab);
+      }
+    }
+    var row = document.createElement('div');
+    row.className = 'lrow' + (id===S.book? ' cur' : '');
+    row.innerHTML = '<div class="lmain"><div class="ltitle"></div><div class="lsub"></div></div><div class="lbadge"></div>';
+    row.querySelector('.ltitle').textContent = bookName(id);
+    row.querySelector('.lsub').textContent = bookChapters(id) + ' chapters';
+    row.querySelector('.lbadge').textContent = id <= 39? 'OT' : 'NT';
+    row.addEventListener('click', function(){ closeSheet('bookSheet'); openChapters(id); });
+    box.appendChild(row);
+  });
+}
+function openChapters(bookId){
+  S._pendingBook = bookId;
+  $('chapTitle').textContent = bookName(bookId);
+  var grid = $('chapGrid'); grid.innerHTML = '';
+  var n = bookChapters(bookId);
+  for(var c=1;c<=n;c++){
+    (function(ch){
+      var b = document.createElement('button');
+      b.className = 'chapBtn' + (bookId===S.book && ch===S.chapter? ' cur' : '');
+      b.textContent = ch;
+      b.addEventListener('click', function(){
+        S.book = bookId; S.chapter = ch; closeSheet('chapSheet'); loadChapter();
+      });
+      grid.appendChild(b);
+    })(c);
+  }
+  openSheet('chapSheet');
+}
+function renderSavedList(){
+  var box = $('savedList'); box.innerHTML = '';
+  var hlKeys = Object.keys(highlights);
+  if(!savedVerses.length && !hlKeys.length){
+    box.innerHTML = '<div class="lempty">Nothing saved yet.<br>Tap any verse, then Highlight or Save.</div>';
+    return;
+  }
+  savedVerses.forEach(function(s){
+    var row = document.createElement('div');
+    row.className = 'lrow';
+    row.innerHTML = '<div class="lmain"><div class="ltitle"></div><div class="lsub"></div></div><div class="lbadge">🔖</div>';
+    row.querySelector('.ltitle').textContent = s.ref + ' · ' + s.transName;
+    row.querySelector('.lsub').textContent = s.text;
+    row.addEventListener('click', function(){
+      closeSheet('savedSheet');
+      if(S.trans && S.trans.id === s.transId && S.trans.src === s.src){ S.book = s.book; S.chapter = s.chapter; loadChapter(); setTimeout(function(){ selectVerse(s.verse, true); }, 900); }
+    });
+    box.appendChild(row);
+  });
+  if(hlKeys.length){
+    var head = document.createElement('div');
+    head.className = 'lempty'; head.style.padding = '1vmin'; head.textContent = '— Highlighted verses —';
+    box.appendChild(head);
+    hlKeys.forEach(function(k){
+      var parts = k.split('|');
+      var row = document.createElement('div');
+      row.className = 'lrow';
+      row.innerHTML = '<div class="lmain"><div class="ltitle"></div></div><div class="lbadge"></div>';
+      row.querySelector('.ltitle').textContent = parts[1] + ' · ' + BOOKS[Number(parts[2])-1][0] + ' ' + parts[3] + ':' + parts[4];
+      row.querySelector('.lbadge').textContent = '🎨 ' + highlights[k];
+      box.appendChild(row);
+    });
+  }
+}
+/* settings chips */
+function renderSettings(){
+  var fr = $('fontRow'); fr.innerHTML = '';
+  FONTS.forEach(function(f, i){
+    var b = document.createElement('button');
+    b.className = 'chip' + (i===S.fontIdx? ' on' : ''); b.textContent = f.name; b.style.fontFamily = f.stack;
+    b.addEventListener('click', function(){ S.fontIdx = i; applyLook(); renderSettings(); saveSettings(); });
+    fr.appendChild(b);
+  });
+  var sr = $('sizeRow'); sr.innerHTML = '';
+  SIZES.forEach(function(s, i){
+    var b = document.createElement('button');
+    b.className = 'chip' + (i===S.sizeIdx? ' on' : ''); b.textContent = s.name;
+    b.addEventListener('click', function(){ S.sizeIdx = i; applyLook(); renderSettings(); saveSettings(); });
+    sr.appendChild(b);
+  });
+  var pr = $('speedRow'); pr.innerHTML = '';
+  [1,2,3,4,5].forEach(function(n){
+    var b = document.createElement('button');
+    b.className = 'chip' + (n===S.scrollSpeed? ' on' : ''); b.textContent = n===1? '1 Slow' : n===5? '5 Fast' : String(n);
+    b.addEventListener('click', function(){ S.scrollSpeed = n; saveSettings(); syncScrollUI(); if(S.scrollOn) startScroll(); });
+    pr.appendChild(b);
+  });
+  syncScrollUI();
+}
+function applyLook(){
+  $('reader').style.setProperty('--readerFont', FONTS[S.fontIdx].stack);
+  $('reader').style.setProperty('--readerSize', SIZES[S.sizeIdx].css);
+}
+/* picker / nav wiring */
+$('langPick').addEventListener('click', function(){ $('langSearch').value=''; renderLangList(''); openSheet('langSheet'); });
+$('transPick').addEventListener('click', function(){ $('transSearch').value=''; renderTransList(''); openSheet('transSheet'); });
+$('refLabel').addEventListener('click', function(){ $('bookSearch').value=''; renderBookList(''); openSheet('bookSheet'); });
+$('langSearch').addEventListener('input', function(){ renderLangList(this.value); });
+$('transSearch').addEventListener('input', function(){ renderTransList(this.value); });
+$('bookSearch').addEventListener('input', function(){ renderBookList(this.value); });
+/* ================= search: reference jump + full-text ================= */
+function jumpTo(book, ch, v){
+  closeSheet('searchSheet'); closeSheet('savedSheet');
+  S.book = book; S.chapter = ch;
+  loadChapter();
+  if(v) setTimeout(function(){ selectVerse(v, true); }, 1000);
+}
+function parseRef(q){
+  var m = String(q||'').trim().match(/^(.+?)\s+(\d+)(?:\s*[:.]\s*(\d+))?\s*$/);
+  if(!m) return null;
+  var b = bookMatch(m[1]);
+  if(b < 0) return null;
+  var ch = parseInt(m[2], 10);
+  if(ch < 1 || ch > bookChapters(b)) return null;
+  return {book:b, chapter:ch, verse: m[3]? parseInt(m[3], 10) : null};
+}
+function renderSearchIdle(){
+  $('searchResults').innerHTML = '<div class="lempty">Type a reference like \u201CJohn 3:16\u201D or \u201CPsalm 23\u201D to jump straight there — or any word or phrase to search the whole Bible in the current translation (' + (S.trans? S.trans.id : '—') + ').</div>';
+}
+function doVerseSearch(){
+  var q = $('verseSearch').value.trim();
+  var box = $('searchResults');
+  if(!q){ renderSearchIdle(); return; }
+  box.innerHTML = '';
+  var ref = parseRef(q);
+  if(ref){
+    var rrow = document.createElement('div'); rrow.className = 'lrow';
+    rrow.innerHTML = '<div class="lmain"><div class="ltitle"></div><div class="lsub">Tap to open</div></div><div class="lbadge">➜</div>';
+    rrow.querySelector('.ltitle').textContent = '📖 ' + bookName(ref.book) + ' ' + ref.chapter + (ref.verse? ':' + ref.verse : '');
+    rrow.addEventListener('click', function(){ jumpTo(ref.book, ref.chapter, ref.verse); });
+    box.appendChild(rrow);
+  }
+  if(!S.trans){ box.innerHTML += '<div class="lempty">Pick a translation first.</div>'; return; }
+  if(S.trans.src !== 'bolls'){
+    var nq = normStr(q);
+    var hits = S.verses.filter(function(vs){ return normStr(vs.text).indexOf(nq) >= 0; });
+    if(hits.length){
+      var hhead = document.createElement('div'); hhead.className = 'secLabel';
+      hhead.textContent = 'IN THIS CHAPTER (' + bookName(S.book) + ' ' + S.chapter + ')';
+      box.appendChild(hhead);
+      hits.forEach(function(vs){
+        var row = document.createElement('div'); row.className = 'lrow';
+        row.innerHTML = '<div class="lmain"><div class="ltitle"></div><div class="lsub"></div></div>';
+        row.querySelector('.ltitle').textContent = bookName(S.book) + ' ' + S.chapter + ':' + vs.v;
+        row.querySelector('.lsub').textContent = vs.text;
+        row.addEventListener('click', function(){ closeSheet('searchSheet'); selectVerse(vs.v, true); });
+        box.appendChild(row);
+      });
+    } else if(!ref){
+      box.innerHTML += '<div class="lempty">Full-Bible text search works in Bolls translations (KJV, SYNOD, UBIO and more). Reference jump works in every translation. Nothing in this chapter matches.</div>';
+    }
+    return;
+  }
+  var loading = document.createElement('div'); loading.className = 'lempty'; loading.textContent = 'Searching the whole Bible…';
+  box.appendChild(loading);
+  var ctrl = ('AbortController' in window)? new AbortController() : null;
+  var timer = ctrl? setTimeout(function(){ ctrl.abort(); }, 25000) : null;
+  fetch('https://bolls.life/search/' + encodeURIComponent(S.trans.id) + '/?search=' + encodeURIComponent(q), ctrl? {signal: ctrl.signal} : undefined)
+    .then(function(r){ if(!r.ok) throw new Error('http'); return r.json(); })
+    .then(function(rows){
+      if(timer) clearTimeout(timer);
+      loading.remove();
+      if(!rows || !rows.length){ box.innerHTML += '<div class="lempty">No verses found for that search.</div>'; return; }
+      var head = document.createElement('div'); head.className = 'secLabel';
+      head.textContent = rows.length + ' VERSES FOUND' + (rows.length > 60? ' — SHOWING FIRST 60' : '');
+      box.appendChild(head);
+      rows.slice(0, 60).forEach(function(r){
+        var row = document.createElement('div'); row.className = 'lrow';
+        row.innerHTML = '<div class="lmain"><div class="ltitle"></div><div class="lsub"></div></div>';
+        row.querySelector('.ltitle').textContent = bookName(r.book) + ' ' + r.chapter + ':' + r.verse;
+        row.querySelector('.lsub').textContent = cleanText(r.text);
+        row.addEventListener('click', function(){ jumpTo(r.book, r.chapter, r.verse); });
+        box.appendChild(row);
+      });
+    })
+    .catch(function(){
+      if(timer) clearTimeout(timer);
+      loading.textContent = 'Search took too long or failed — try a shorter word, or a reference like John 3:16.';
+    });
+}
+$('btnSearch').addEventListener('click', function(){ renderSearchIdle(); openSheet('searchSheet'); });
+$('verseSearchGo').addEventListener('click', doVerseSearch);
+$('verseSearch').addEventListener('keydown', function(e){ if(e.key === 'Enter') doVerseSearch(); });
+$('btnSaved').addEventListener('click', function(){ renderSavedList(); openSheet('savedSheet'); });
+$('btnSettings').addEventListener('click', function(){ renderSettings(); openSheet('settingsSheet'); });
+$('prevChap').addEventListener('click', function(){
+  if(S.chapter > 1){ S.chapter--; }
+  else if(S.book > 1){ S.book--; S.chapter = bookChapters(S.book); }
+  loadChapter();
+});
+$('nextChap').addEventListener('click', function(){
+  if(S.chapter < bookChapters(S.book)){ S.chapter++; }
+  else if(S.book < 66){ S.book++; S.chapter = 1; }
+  loadChapter();
+});
+function refreshChrome(){
+  var L = langOf();
+  $('langName').textContent = L.name + ' · ' + L.native;
+  $('transName').textContent = S.trans? S.trans.id : '—';
+  $('subTitle').textContent = S.trans? (S.trans.name || S.trans.id) : 'No translation yet for this language';
+  $('refLabel').textContent = bookName(S.book) + ' ' + S.chapter;
+}
+/* ================= daily verse & streak reward ================= */
+function dayKey(d){ return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+function dailyRef(){
+  var now = new Date();
+  var start = new Date(now.getFullYear(), 0, 0);
+  var doy = Math.floor((now - start) / 86400000);
+  return DAILY[doy % DAILY.length];
+}
+function loadDaily(){
+  var ref = dailyRef();
+  var label = BOOKS[ref[0]-1][0] + ' ' + ref[1] + ':' + ref[2];
+  $('dailyRef').textContent = label;
+  if(!S.trans){ $('dailyText').textContent = 'Pick a language to see today\u2019s verse.'; return; }
+  var p;
+  if(S.trans.src === 'bolls'){
+    p = fetchJSON('https://bolls.life/get-verse/' + encodeURIComponent(S.trans.id) + '/' + ref[0] + '/' + ref[1] + '/' + ref[2] + '/')
+      .then(function(r){ return cleanText(r.text); });
+  } else {
+    p = fetchJSON('https://bible.helloao.org/api/' + encodeURIComponent(S.trans.id) + '/' + BOOKS[ref[0]-1][2] + '/' + ref[1] + '.json')
+      .then(function(d){
+        var txt = '';
+        (d.chapter.content||[]).forEach(function(item){
+          if(item.type==='verse' && item.number===ref[2]){ var parts=[]; aoFlatten(item.content, parts); txt = parts.join(' '); }
+        });
+        return txt;
+      });
+  }
+  p.then(function(txt){
+    if(txt) $('dailyText').textContent = txt;
+    $('welcomeVerse').textContent = '\u201C' + (txt||'') + '\u201D — ' + label;
+  }).catch(function(){});
+  $('dailyCard').onclick = function(){ S.book = ref[0]; S.chapter = ref[1]; loadChapter(); setTimeout(function(){ selectVerse(ref[2], true); }, 900); };
+}
+function chime(){
+  try{
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if(!AC) return;
+    var ctx = new AC();
+    [523.25, 659.25, 783.99, 1046.5].forEach(function(f, i){
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.value = f; o.type = 'sine';
+      g.gain.setValueAtTime(0.0001, ctx.currentTime + i*0.12);
+      g.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + i*0.12 + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + i*0.12 + 0.5);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(ctx.currentTime + i*0.12); o.stop(ctx.currentTime + i*0.12 + 0.55);
+    });
+  }catch(e){}
+}
+function runStreak(){
+  var streak = store.get('bibleDisplay.streak.v1', {lastDay:null, count:0});
+  var today = dayKey(new Date());
+  var y = new Date(); y.setDate(y.getDate()-1);
+  var yesterday = dayKey(y);
+  var isNewDay = streak.lastDay !== today;
+  if(isNewDay){
+    streak.count = (streak.lastDay === yesterday)? streak.count + 1 : 1;
+    streak.lastDay = today;
+    store.set('bibleDisplay.streak.v1', streak);
+  }
+  $('streakChip').textContent = 'Day ' + streak.count;
+  if(isNewDay){
+    if(streak.count <= 1){
+      $('welcomeTitle').textContent = 'WELCOME!';
+      $('welcomeDay').textContent = 'A NEW STREAK BEGINS';
+    } else {
+      $('welcomeTitle').textContent = 'WOOHOO! YOU\u2019RE BACK!';
+      $('welcomeDay').textContent = 'THIS IS YOUR DAY ' + streak.count;
+    }
+    $('welcomeOverlay').classList.add('open');
+  }
+}
+$('welcomeBtn').addEventListener('click', function(){ $('welcomeOverlay').classList.remove('open'); chime(); });
+/* ================= keyboard (Neural Band / D-pad) ================= */
+document.addEventListener('keydown', function(e){
+  var anySheet = document.querySelector('.sheet.open');
+  if(e.key === 'Escape'){
+    if(anySheet) anySheet.classList.remove('open');
+    $('welcomeOverlay').classList.remove('open');
+    return;
+  }
+  if(anySheet || $('welcomeOverlay').classList.contains('open')) return;
+  if(e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+    e.preventDefault();
+    if(!S.verses.length) return;
+    var cur = -1;
+    S.verses.forEach(function(vs,i){ if(vs.v===S.selectedVerse) cur=i; });
+    var nxt = e.key==='ArrowDown'? Math.min(cur+1, S.verses.length-1) : Math.max(cur-1, 0);
+    if(cur<0) nxt = 0;
+    selectVerse(S.verses[nxt].v, true);
+  }
+  if(e.key === 'Enter' && S.selectedVerse!=null){
+    if(S.speakingIdx>=0) stopSpeak(); else $('vbListen').click();
+  }
+});
+/* ================= opening book splash ================= */
+function bookHTML(){ return '<div class="bookScene"><div class="book"><div class="bookPages"></div><div class="bookPageFlip pf1"></div><div class="bookPageFlip pf2"></div><div class="bookCover"><div class="coverCross">✝</div><div class="coverTitle">HOLY BIBLE</div></div></div></div>'; }
+$('splashBook').innerHTML = bookHTML();
+$('welcomeBook').innerHTML = bookHTML();
+setTimeout(function(){
+  $('splash').classList.remove('open');
+  if($('welcomeOverlay').classList.contains('open')) $('welcomeBook').innerHTML = bookHTML();
+}, 2700);
+$('splash').addEventListener('click', function(){ $('splash').classList.remove('open'); });
+/* ================= init ================= */
+applyLook(); updateSavedBtn(); refreshChrome();
+Promise.all([
+  fetchJSON('https://bolls.life/static/bolls/app/views/languages.json').catch(function(){ return null; }),
+  fetchJSON('https://bible.helloao.org/api/available_translations.json').catch(function(){ return null; })
+]).then(function(res){
+  buildCatalogs(res[0], res[1]);
+  pickTranslation();
+  refreshChrome();
+  return loadBooks();
+}).then(function(){
+  loadChapter(); loadDaily(); runStreak();
+}).catch(function(){
+  buildCatalogs(null, null); renderOffline('Offline.');
+  runStreak();
+});
+})();
+</script>
+</body>
+</html>
