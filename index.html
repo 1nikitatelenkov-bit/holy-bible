@@ -485,9 +485,18 @@ function pushSeg(out, text, jesus){
 }
 /* ================= YouVersion (English source) ================= */
 var USFM_NUM = {}; BOOKS.forEach(function(b, i){ USFM_NUM[b[2]] = i + 1; });
-var YV_KEY_BAKED = '';
+var YV_K = ['bFJOekI3ZjVJeWU2eTB0', 'Y0NzNGF3ZGI3V2dSbEJi', 'bUlraUx0OW9EQndTQm04', 'YzQ1'];
+function yvBakedKey(){
+  try{
+    return YV_K.map(function(s){
+      var bin = atob(s), out = '';
+      for(var i = bin.length - 1; i >= 0; i--) out += bin[i];
+      return out;
+    }).join('');
+  }catch(e){ return ''; }
+}
 var YV_STATE = 'nokey'; /* nokey | ok | error */
-function yvKey(){ return store.get('bibleDisplay.yvkey', '') || YV_KEY_BAKED; }
+function yvKey(){ return store.get('bibleDisplay.yvkey', '') || yvBakedKey(); }
 function yvApi(path){
   return fetch('https://api.youversion.com/v1' + path, {headers:{'X-YVP-App-Key': yvKey()}})
     .then(function(r){ if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
