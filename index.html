@@ -44,6 +44,7 @@
           font-family:var(--readerFont,Georgia,serif);font-size:var(--readerSize,3.05vmin);line-height:1.62;
           scroll-behavior:auto;-webkit-overflow-scrolling:touch}
   #reader.rtl{direction:rtl;text-align:right}
+  #copyLine{font-size:1.7vmin;color:#8d877a;text-align:center;padding:.5vmin 2vmin 0;line-height:1.45;font-family:"Segoe UI",system-ui,sans-serif}
   .verse{border-radius:.7vmin;padding:.35vmin .7vmin;cursor:pointer}
   .verse .vn{font-size:.62em;color:#ffb300;font-weight:700;vertical-align:super;margin-right:.5vmin;font-family:"Segoe UI",system-ui,sans-serif}
   .verse.sel{box-shadow:inset 0 0 0 .35vmin #ffb300}
@@ -160,6 +161,7 @@
   </div>
 
   <div id="reader"><div id="readerMsg">Loading Scripture…</div></div>
+  <div id="copyLine"></div>
 
   <div id="verseBar">
     <button class="btn" id="vbHighlight">🎨 Highlight</button>
@@ -188,6 +190,7 @@
   <div class="sheet" id="transSheet">
     <div class="sheetHead"><h2>Translation</h2><button class="xBtn" data-close="transSheet">✕</button></div>
     <input class="searchBox" id="transSearch" type="text" placeholder="🔍 Search translation…" autocomplete="off">
+    <div class="lempty" id="transNote" style="display:none"></div>
     <div class="listScroll" id="transList"></div>
   </div>
 
@@ -237,6 +240,15 @@
         </div>
         <div class="setLabel" style="margin-top:.6vmin">SCROLL SPEED</div>
         <div class="chipRow" id="speedRow"></div>
+      </div>
+      <div class="setGroup">
+        <div class="setLabel">YOUVERSION APP KEY — ENGLISH VERSIONS</div>
+        <input class="searchBox" id="yvKeyInput" type="text" placeholder="Paste your App Key" autocomplete="off" style="margin:0 0 1vmin">
+        <div class="chipRow">
+          <button class="chip" id="yvKeySave">Save key</button>
+          <button class="chip" id="yvKeyClear">Remove key</button>
+        </div>
+        <div class="lsub" id="yvKeyState">English versions load from YouVersion with your free App Key (platform.youversion.com). Russian and Ukrainian don't need it.</div>
       </div>
       <div class="setGroup">
         <div class="setLabel">LISTEN (TEXT-TO-SPEECH)</div>
@@ -349,7 +361,7 @@ var LANGS = [
  {id:'sk',name:'Slovak',native:'Slovenčina',tts:'sk-SK',bolls:null,hello:['Slovak'],iso3:'slk'},
  {id:'af',name:'Afrikaans',native:'Afrikaans',tts:'af-ZA',bolls:'afrikaans',hello:['Afrikaans'],iso3:'afr'}
 ];
-var PREFERRED = { en:['KJV','BSB','WEB','NKJV'], ru:['SYNOD','NRT','RBS2'], uk:['UBIO','CUV23','UMT','HOM'],
+var PREFERRED = { en:['3034','111','206'], ru:['SYNOD','NRT','RBS2'], uk:['UBIO','CUV23','UMT','HOM'],
   es:['RV1960','NVI'], fr:['FRLSG','NBS'], de:['LUT','ELB'], pt:['ARA','OL'], zh:['CUV','CUNPS'], ko:['KRV'], ja:['NJB'] };
 var FONTS = [
  {name:'Serif', stack:"Georgia,'Times New Roman',serif"},
@@ -471,11 +483,68 @@ function pushSeg(out, text, jesus){
   if(last && last.j === !!jesus) last.t += text;
   else out.push({t:text, j:!!jesus});
 }
+/* ================= YouVersion (English source) ================= */
+var USFM_NUM = {}; BOOKS.forEach(function(b, i){ USFM_NUM[b[2]] = i + 1; });
+var YV_KEY_BAKED = '';
+var YV_STATE = 'nokey'; /* nokey | ok | error */
+function yvKey(){ return store.get('bibleDisplay.yvkey', '') || YV_KEY_BAKED; }
+function yvApi(path){
+  return fetch('https://api.youversion.com/v1' + path, {headers:{'X-YVP-App-Key': yvKey()}})
+    .then(function(r){ if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+}
+function fetchYvCatalogs(){
+  if(!yvKey()){ YV_STATE = 'nokey'; return Promise.resolve(null); }
+  return Promise.all([
+    yvApi('/bibles?language_ranges[]=eng&page_size=99').catch(function(){ return null; }),
+    yvApi('/bibles?language_ranges[]=eng&page_size=99&all_available=true').catch(function(){ return null; })
+  ]).then(function(r){
+    if(!r[0] && !r[1]){ YV_STATE = 'error'; return {error:true}; }
+    YV_STATE = 'ok';
+    return {licensed:r[0], all:r[1]};
+  });
+}
+function yvParseChapter(html){
+  var host = document.createElement('div');
+  host.innerHTML = html || '';
+  var verses = [], cur = null;
+  function walk(node, inWj, skipText){
+    for(var i=0;i<node.childNodes.length;i++){
+      var n = node.childNodes[i];
+      if(n.nodeType === 3){ if(cur && !skipText) pushSeg(cur.segs, n.nodeValue, inWj); }
+      else if(n.nodeType === 1){
+        var cls = (typeof n.className === 'string')? n.className : '';
+        if(cls.indexOf('yv-vlbl') >= 0){
+          var num = parseInt(n.textContent, 10);
+          if(num){ cur = {v:num, segs:[]}; verses.push(cur); }
+          continue;
+        }
+        if(cls.indexOf('yv-v') >= 0) continue;
+        if(cur && (n.tagName === 'DIV' || n.tagName === 'P' || n.tagName === 'BR')) pushSeg(cur.segs, ' ', inWj);
+        walk(n, inWj || cls.indexOf('wj') >= 0, skipText || /(^|\s)(d|r)(\s|$)/.test(cls));
+      }
+    }
+  }
+  walk(host, false, false);
+  return verses.map(function(x){
+    return {v:x.v, text:x.segs.map(function(s){ return s.t; }).join(' ').replace(/\s+/g,' ').trim(), segs:x.segs};
+  }).filter(function(x){ return x.text; });
+}
 /* ================= catalogs ================= */
-function buildCatalogs(bolls, ao){
+function buildCatalogs(bolls, ao, yv){
   LANGS.forEach(function(L){
     var list = [];
-    if(bolls && L.bolls){
+    var enYv = (L.id === 'en' && yv && !yv.error);
+    if(enYv){
+      var licIds = {};
+      ((yv.licensed && yv.licensed.data) || []).forEach(function(b){
+        licIds[b.id] = 1;
+        list.push({src:'yv', id:String(b.id), abbr:b.abbreviation || String(b.id), name:b.title || b.abbreviation || String(b.id), copyright:b.copyright || ''});
+      });
+      ((yv.all && yv.all.data) || []).forEach(function(b){
+        if(!licIds[b.id]) list.push({src:'yvLocked', id:String(b.id), abbr:b.abbreviation || String(b.id), name:b.title || b.abbreviation || String(b.id), copyright:b.copyright || ''});
+      });
+    }
+    if(bolls && L.bolls && !enYv){
       for(var i=0;i<bolls.length;i++){
         if(String(bolls[i].language||'').toLowerCase().indexOf(L.bolls) >= 0){
           bolls[i].translations.forEach(function(t){ if(['NIV2011','NIV','NIVUK','TNIV'].indexOf(t.short_name) < 0) list.push({src:'bolls', id:t.short_name, name:t.full_name}); });
@@ -483,7 +552,7 @@ function buildCatalogs(bolls, ao){
         }
       }
     }
-    if(ao && ao.translations){
+    if(ao && ao.translations && !enYv){
       ao.translations.forEach(function(t){
         var byName = L.hello.indexOf(t.languageEnglishName) >= 0;
         var byCode = t.language === L.iso3;
@@ -512,6 +581,22 @@ function fetchJSON(url){
 function loadBooks(){
   S.booksList = null;
   if(!S.trans) return Promise.resolve();
+  if(S.trans.src === 'yv'){
+    var cacheKey = 'bibleDisplay.yvbooks.' + S.trans.id;
+    var cached = store.get(cacheKey, null);
+    if(cached && cached.length){ S.booksList = cached; return Promise.resolve(); }
+    return yvApi('/bibles/' + encodeURIComponent(S.trans.id) + '/books')
+      .then(function(d){
+        var items = (d && d.data) || [];
+        S.booksList = items.map(function(b){
+          var num = USFM_NUM[b.id];
+          if(!num) return null;
+          return {bookid:num, name:b.title || b.id, chapters:(b.chapters || []).length || BOOKS[num-1][1], usfm:b.id};
+        }).filter(Boolean).sort(function(a, b){ return a.bookid - b.bookid; });
+        if(S.booksList.length) store.set(cacheKey, S.booksList);
+      })
+      .catch(function(){ S.booksList = null; });
+  }
   if(S.trans.src === 'bolls'){
     return fetchJSON('https://bolls.life/get-books/' + encodeURIComponent(S.trans.id) + '/')
       .then(function(rows){ S.booksList = rows.map(function(r){ return {bookid:r.bookid, name:r.name, chapters:r.chapters}; }); })
@@ -539,6 +624,9 @@ function loadChapter(){
   if(S.trans.src === 'bolls'){
     p = fetchJSON('https://bolls.life/get-text/' + encodeURIComponent(S.trans.id) + '/' + S.book + '/' + S.chapter + '/')
       .then(function(rows){ return rows.map(function(r){ return {v:r.verse, text:cleanText(r.text)}; }); });
+  } else if(S.trans.src === 'yv'){
+    p = yvApi('/bibles/' + encodeURIComponent(S.trans.id) + '/passages/' + BOOKS[S.book-1][2] + '.' + S.chapter + '?format=html&include_headings=false&include_notes=false')
+      .then(function(d){ return yvParseChapter(d.content); });
   } else {
     p = fetchJSON('https://bible.helloao.org/api/' + encodeURIComponent(S.trans.id) + '/' + helloBookId(S.book) + '/' + S.chapter + '.json')
       .then(function(d){
@@ -762,10 +850,15 @@ function renderTransList(q){
     var row = document.createElement('div');
     row.className = 'lrow' + (S.trans && t.id===S.trans.id && t.src===S.trans.src? ' cur' : '');
     row.innerHTML = '<div class="lmain"><div class="ltitle"></div><div class="lsub"></div></div><div class="lbadge"></div>';
-    row.querySelector('.ltitle').textContent = t.id;
+    row.querySelector('.ltitle').textContent = t.abbr || t.id;
     row.querySelector('.lsub').textContent = t.name;
-    row.querySelector('.lbadge').textContent = t.src==='bolls'? 'Bolls' : 'HelloAO';
+    row.querySelector('.lbadge').textContent = t.src==='bolls'? 'Bolls' : t.src==='ao'? 'HelloAO' : t.src==='yvLocked'? '🔒' : 'YouVersion';
     row.addEventListener('click', function(){
+      if(t.src === 'yvLocked'){
+        var note = $('transNote');
+        if(note){ note.style.display = 'block'; note.textContent = '🔒 ' + (t.abbr || t.id) + ' — accept this version\u2019s license in your app at platform.youversion.com, then reopen this list: it unlocks automatically.'; }
+        return;
+      }
       S.trans = t; closeSheet('transSheet'); refreshChrome();
       loadBooks().then(function(){ loadChapter(); loadDaily(); });
     });
@@ -877,14 +970,30 @@ function renderSettings(){
     pr.appendChild(b);
   });
   syncScrollUI();
+  var ks = $('yvKeyState');
+  if(ks) ks.textContent = yvKey()? (YV_STATE === 'error'? 'A key is saved, but YouVersion rejected it — paste the App Key again and save.' : 'App Key saved — English versions come from YouVersion.') : 'English versions load from YouVersion with your free App Key (platform.youversion.com). Russian and Ukrainian don\u2019t need it.';
 }
+$('yvKeySave').addEventListener('click', function(){
+  var v = $('yvKeyInput').value.trim();
+  if(!v) return;
+  store.set('bibleDisplay.yvkey', v);
+  $('yvKeyInput').value = '';
+  closeSheet('settingsSheet');
+  initCatalogs();
+});
+$('yvKeyClear').addEventListener('click', function(){
+  store.set('bibleDisplay.yvkey', '');
+  $('yvKeyInput').value = '';
+  closeSheet('settingsSheet');
+  initCatalogs();
+});
 function applyLook(){
   $('reader').style.setProperty('--readerFont', FONTS[S.fontIdx].stack);
   $('reader').style.setProperty('--readerSize', SIZES[S.sizeIdx].css);
 }
 /* picker / nav wiring */
 $('langPick').addEventListener('click', function(){ $('langSearch').value=''; renderLangList(''); openSheet('langSheet'); });
-$('transPick').addEventListener('click', function(){ $('transSearch').value=''; renderTransList(''); openSheet('transSheet'); });
+$('transPick').addEventListener('click', function(){ $('transSearch').value=''; var tn = $('transNote'); if(tn) tn.style.display='none'; renderTransList(''); openSheet('transSheet'); });
 $('refLabel').addEventListener('click', function(){ $('bookSearch').value=''; renderBookList(''); openSheet('bookSheet'); });
 $('langSearch').addEventListener('input', function(){ renderLangList(this.value); });
 $('transSearch').addEventListener('input', function(){ renderTransList(this.value); });
@@ -906,7 +1015,8 @@ function parseRef(q){
   return {book:b, chapter:ch, verse: m[3]? parseInt(m[3], 10) : null};
 }
 function renderSearchIdle(){
-  $('searchResults').innerHTML = '<div class="lempty">Type a reference like \u201CJohn 3:16\u201D or \u201CPsalm 23\u201D to jump straight there — or any word or phrase to search the whole Bible in the current translation (' + (S.trans? S.trans.id : '—') + ').</div>';
+  var full = S.trans && S.trans.src === 'bolls';
+  $('searchResults').innerHTML = '<div class="lempty">Type a reference like \u201CJohn 3:16\u201D or \u201CPsalm 23\u201D to jump straight there' + (full? ' — or any word or phrase to search the whole Bible in the current translation (' + S.trans.id + ').' : ' — or a word to search this chapter. Full-Bible text search works in the Russian and Ukrainian translations.') + '</div>';
 }
 function doVerseSearch(){
   var q = $('verseSearch').value.trim();
@@ -938,7 +1048,7 @@ function doVerseSearch(){
         box.appendChild(row);
       });
     } else if(!ref){
-      box.innerHTML += '<div class="lempty">Full-Bible text search works in Bolls translations (KJV, SYNOD, UBIO and more). Reference jump works in every translation. Nothing in this chapter matches.</div>';
+      box.innerHTML += '<div class="lempty">Full-Bible text search works in the Russian and Ukrainian translations. Reference jump works in every translation. Nothing in this chapter matches.</div>';
     }
     return;
   }
@@ -987,8 +1097,9 @@ $('nextChap').addEventListener('click', function(){
 function refreshChrome(){
   var L = langOf();
   $('langName').textContent = L.name + ' · ' + L.native;
-  $('transName').textContent = S.trans? S.trans.id : '—';
+  $('transName').textContent = S.trans? (S.trans.abbr || S.trans.id) : '—';
   $('subTitle').textContent = S.trans? (S.trans.name || S.trans.id) : 'No translation yet for this language';
+  $('copyLine').textContent = (S.trans && S.trans.src === 'yv' && S.trans.copyright)? S.trans.copyright : '';
   $('refLabel').textContent = bookName(S.book) + ' ' + S.chapter;
 }
 /* ================= daily verse & streak reward ================= */
@@ -999,30 +1110,47 @@ function dailyRef(){
   var doy = Math.floor((now - start) / 86400000);
   return DAILY[doy % DAILY.length];
 }
-function loadDaily(){
-  var ref = dailyRef();
-  var label = BOOKS[ref[0]-1][0] + ' ' + ref[1] + ':' + ref[2];
+function fetchVerseText(book, ch, v){
+  if(S.trans.src === 'bolls'){
+    return fetchJSON('https://bolls.life/get-verse/' + encodeURIComponent(S.trans.id) + '/' + book + '/' + ch + '/' + v + '/')
+      .then(function(r){ return cleanText(r.text); });
+  }
+  if(S.trans.src === 'yv'){
+    return yvApi('/bibles/' + encodeURIComponent(S.trans.id) + '/passages/' + BOOKS[book-1][2] + '.' + ch + '.' + v + '?format=text')
+      .then(function(d){ return String(d.content || '').replace(/\s+/g, ' ').trim(); });
+  }
+  return fetchJSON('https://bible.helloao.org/api/' + encodeURIComponent(S.trans.id) + '/' + BOOKS[book-1][2] + '/' + ch + '.json')
+    .then(function(d){
+      var txt = '';
+      (d.chapter.content||[]).forEach(function(item){
+        if(item.type==='verse' && item.number===v){ var parts=[]; aoFlatten(item.content, parts); txt = parts.join(' '); }
+      });
+      return txt;
+    });
+}
+function showDaily(ref){
+  var label = bookName(ref[0]) + ' ' + ref[1] + ':' + ref[2];
   $('dailyRef').textContent = label;
   if(!S.trans){ $('dailyText').textContent = 'Pick a language to see today\u2019s verse.'; return; }
-  var p;
-  if(S.trans.src === 'bolls'){
-    p = fetchJSON('https://bolls.life/get-verse/' + encodeURIComponent(S.trans.id) + '/' + ref[0] + '/' + ref[1] + '/' + ref[2] + '/')
-      .then(function(r){ return cleanText(r.text); });
-  } else {
-    p = fetchJSON('https://bible.helloao.org/api/' + encodeURIComponent(S.trans.id) + '/' + BOOKS[ref[0]-1][2] + '/' + ref[1] + '.json')
-      .then(function(d){
-        var txt = '';
-        (d.chapter.content||[]).forEach(function(item){
-          if(item.type==='verse' && item.number===ref[2]){ var parts=[]; aoFlatten(item.content, parts); txt = parts.join(' '); }
-        });
-        return txt;
-      });
-  }
-  p.then(function(txt){
+  fetchVerseText(ref[0], ref[1], ref[2]).then(function(txt){
     if(txt) $('dailyText').textContent = txt;
     $('welcomeVerse').textContent = '\u201C' + (txt||'') + '\u201D — ' + label;
   }).catch(function(){});
   $('dailyCard').onclick = function(){ S.book = ref[0]; S.chapter = ref[1]; loadChapter(); setTimeout(function(){ selectVerse(ref[2], true); }, 900); };
+}
+function loadDaily(){
+  if(yvKey()){
+    var now = new Date();
+    var doy = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
+    yvApi('/verse-of-the-days/' + doy).then(function(d){
+      var first = String(d.passage_id || '').split('-')[0];
+      var m = first.match(/^([A-Z0-9]+)\.(\d+)\.(\d+)$/);
+      if(!m || !USFM_NUM[m[1]]) throw new Error('bad passage');
+      showDaily([USFM_NUM[m[1]], parseInt(m[2], 10), parseInt(m[3], 10)]);
+    }).catch(function(){ showDaily(dailyRef()); });
+  } else {
+    showDaily(dailyRef());
+  }
 }
 function chime(){
   try{
@@ -1097,20 +1225,24 @@ setTimeout(function(){
 $('splash').addEventListener('click', function(){ $('splash').classList.remove('open'); });
 /* ================= init ================= */
 applyLook(); updateSavedBtn(); refreshChrome();
-Promise.all([
-  fetchJSON('https://bolls.life/static/bolls/app/views/languages.json').catch(function(){ return null; }),
-  fetchJSON('https://bible.helloao.org/api/available_translations.json').catch(function(){ return null; })
-]).then(function(res){
-  buildCatalogs(res[0], res[1]);
-  pickTranslation();
-  refreshChrome();
-  return loadBooks();
-}).then(function(){
-  loadChapter(); loadDaily(); runStreak();
-}).catch(function(){
-  buildCatalogs(null, null); renderOffline('Offline.');
-  runStreak();
-});
+function initCatalogs(){
+  Promise.all([
+    fetchJSON('https://bolls.life/static/bolls/app/views/languages.json').catch(function(){ return null; }),
+    fetchJSON('https://bible.helloao.org/api/available_translations.json').catch(function(){ return null; }),
+    fetchYvCatalogs()
+  ]).then(function(res){
+    buildCatalogs(res[0], res[1], res[2]);
+    pickTranslation();
+    refreshChrome();
+    return loadBooks();
+  }).then(function(){
+    loadChapter(); loadDaily(); runStreak();
+  }).catch(function(){
+    buildCatalogs(null, null, null); renderOffline('Offline.');
+    runStreak();
+  });
+}
+initCatalogs();
 })();
 </script>
 </body>
