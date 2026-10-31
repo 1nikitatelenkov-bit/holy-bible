@@ -767,9 +767,13 @@ function syncDownloadUI(){
     t.textContent = '⏳ Downloading ' + S.trans.abbr + '…';
     s.textContent = dlRun.done + ' of ' + dlRun.total + ' chapters — tap to cancel';
     b.textContent = '✕';
+  } else if(downloads[key] && typeof downloads[key] === 'number'){
+    t.textContent = '✓ ' + S.trans.abbr + ' — available offline';
+    s.textContent = 'The whole translation is saved on this device. Tap to remove it.';
+    b.textContent = '›';
   } else if(downloads[key]){
-    t.textContent = '✓ ' + S.trans.abbr + ' — downloaded';
-    s.textContent = 'The whole translation reads offline. Tap to remove it.';
+    t.textContent = '⬇ Download ' + S.trans.abbr + ' for offline';
+    s.textContent = downloads[key].ok + ' of ' + downloads[key].total + ' chapters saved — tap to finish the rest';
     b.textContent = '›';
   } else {
     t.textContent = '⬇ Download ' + S.trans.abbr + ' for offline';
@@ -788,12 +792,12 @@ function startDownload(){
   var idx = 0;
   function worker(){
     if(run.cancelled || dlRun !== run) return;
-    if(idx >= jobs.length){ finishDownload(run); return; }
+    if(idx >= jobs.length) return;
     var job = jobs[idx++];
     fetchChapterVerses(run.trans, job[0], job[1], S.booksList)
-      .then(function(v){ if(v && v.length) run.ok++; })
+      .then(function(){ run.ok++; })
       .catch(function(){})
-      .then(function(){ run.done++; syncDownloadUI(); worker(); });
+      .then(function(){ run.done++; if(run.done >= run.total){ finishDownload(run); return; } syncDownloadUI(); worker(); });
   }
   worker(); worker(); worker();
 }
@@ -802,8 +806,10 @@ function finishDownload(run){
   if(run.ok === run.total){
     downloads[run.key] = Date.now();
     store.set('bibleDisplay.downloads.v1', downloads);
-    toast('✓ ' + run.trans.abbr + ' downloaded — reads fully offline');
+    toast('✓ ' + run.trans.abbr + ' downloaded — available offline');
   } else {
+    downloads[run.key] = { ok: run.ok, total: run.total };
+    store.set('bibleDisplay.downloads.v1', downloads);
     toast('Download paused at ' + run.ok + ' of ' + run.total + ' chapters — tap Download again to finish the rest');
   }
   syncDownloadUI();
@@ -1019,8 +1025,13 @@ $('btnListenTop').addEventListener('click', function(){
 $('ttsPlay').addEventListener('click', function(){ closeSheet('settingsSheet'); speakFrom(0); });
 $('setDownload').addEventListener('click', function(){
   if(!S.trans) return;
-  if(dlRun && dlRun.key === dlKey(S.trans)){ dlRun.cancelled = true; dlRun = null; syncDownloadUI(); toast('Download cancelled — chapters already fetched stay saved'); return; }
-  if(downloads[dlKey(S.trans)]){ removeDownload(); return; }
+  if(dlRun && dlRun.key === dlKey(S.trans)){
+    var r = dlRun; r.cancelled = true; dlRun = null;
+    if(r.ok > 0 && r.ok < r.total){ downloads[r.key] = { ok: r.ok, total: r.total }; store.set('bibleDisplay.downloads.v1', downloads); }
+    syncDownloadUI(); toast('Download cancelled — chapters already fetched stay saved'); return;
+  }
+  var d = downloads[dlKey(S.trans)];
+  if(d && typeof d === 'number'){ removeDownload(); return; }
   startDownload();
 });
 $('ttsStop').addEventListener('click', function(){ stopSpeak(); });
