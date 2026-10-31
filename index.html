@@ -25,6 +25,7 @@
   .railBtn .rl{font-size:1.65vmin;font-weight:700;white-space:nowrap}
   .railBtn:active{background:#4c483e}
   .railBtn.on{background:#8a6d1f;color:#fff}
+  button:focus{outline:none}
   /* header */
   #topbar{display:flex;align-items:center;gap:.8vmin;height:5.6vmin;padding:0 .4vmin}
   #cross{width:4.8vmin;height:4.8vmin;border-radius:1vmin;background:#3a372f;flex:0 0 auto;
@@ -141,6 +142,7 @@
     <button class="railBtn" id="btnMenu"><span class="ri">☰</span><span class="rl">Menu</span></button>
     <button class="railBtn" id="btnListenTop"><span class="ri" id="listenIcon">📢</span><span class="rl">Listen</span></button>
     <button class="railBtn" id="btnCompare"><span class="ri">⇄</span><span class="rl" id="cmpLabel">Compare</span></button>
+    <button class="railBtn" id="btnScrollRail"><span class="ri" id="scrollRailIcon">⏬</span><span class="rl">Scroll</span></button>
   </div>
   <div id="main">
   <div id="topbar">
@@ -458,7 +460,7 @@ function bookMatch(q){
   }
   return bestBook;
 }
-function saveSettings(){ store.set('bibleDisplay.settings.v1', { langId:S.langId, transSrc:S.trans?S.trans.src:null, transId:S.trans?S.trans.id:null, book:S.book, chapter:S.chapter, fontIdx:S.fontIdx, sizeIdx:S.sizeIdx, scrollSpeed:S.scrollSpeed, cmpSrc:S.cmpTrans?S.cmpTrans.src:null, cmpId:S.cmpTrans?S.cmpTrans.id:null, cmpOn:S.cmpOn }); }
+function saveSettings(){ settings = { langId:S.langId, transSrc:S.trans?S.trans.src:null, transId:S.trans?S.trans.id:null, book:S.book, chapter:S.chapter, verse:S.selectedVerse, fontIdx:S.fontIdx, sizeIdx:S.sizeIdx, scrollSpeed:S.scrollSpeed, cmpSrc:S.cmpTrans?S.cmpTrans.src:null, cmpId:S.cmpTrans?S.cmpTrans.id:null, cmpOn:S.cmpOn }; store.set('bibleDisplay.settings.v1', settings); }
 function verseKey(book, ch, v){ return (S.trans? S.trans.src+'|'+S.trans.id : 'none') + '|' + book + '|' + ch + '|' + v; }
 function bookName(bookId){
   if(S.booksList){ for(var i=0;i<S.booksList.length;i++) if(S.booksList[i].bookid===bookId) return S.booksList[i].name; }
@@ -694,7 +696,6 @@ function loadCompareVerses(){
 function resolveCompare(){
   var wantSrc = S.cmpTrans? S.cmpTrans.src : settings.cmpSrc;
   var wantId = S.cmpTrans? S.cmpTrans.id : settings.cmpId;
-  var wantOn = S.cmpTrans? S.cmpOn : !!settings.cmpOn;
   var found = null;
   if(wantId){
     for(var lid in transByLang){
@@ -704,7 +705,9 @@ function resolveCompare(){
     }
   }
   S.cmpTrans = found;
-  S.cmpOn = !!(wantOn && found);
+  /* the picked translation is remembered, but compare always starts OFF at launch —
+     nothing on the rail is lit until he turns it on (his "preselected" fix) */
+  S.cmpOn = false;
   syncCompareUI();
 }
 function renderCompareList(){
@@ -750,7 +753,7 @@ function renderCompareList(){
   if(!any && !S.cmpTrans) box.innerHTML = '<div class="lempty">No other translation is available to compare right now.</div>';
 }
 function loadChapter(){
-  stopSpeak(); stopScroll();
+  stopSpeak(); stopScroll(); syncScrollUI();
   S.selectedVerse = null;
   $('refLabel').textContent = bookName(S.book) + ' ' + S.chapter;
   var reader = $('reader');
@@ -759,7 +762,9 @@ function loadChapter(){
   var p = fetchChapterVerses(S.trans, S.book, S.chapter, S.booksList);
   p.then(function(verses){
     if(!verses.length) throw new Error('empty');
+    var restoreV = (settings.verse && settings.book===S.book && settings.chapter===S.chapter)? settings.verse : null;
     S.verses = verses; renderVerses(); saveSettings(); loadCompareVerses();
+    if(restoreV) selectVerse(restoreV);
   }).catch(function(){ renderOffline('Could not load this chapter — check the connection on your phone.'); });
 }
 function renderOffline(msg){
@@ -815,6 +820,7 @@ function selectVerse(v){
     el.classList.toggle('sel', Number(el.getAttribute('data-v')) === v);
     if(Number(el.getAttribute('data-v')) === v) el.scrollIntoView({block:'center'});
   });
+  saveSettings();
 }
 /* ================= highlight & save ================= */
 function cycleHighlight(){
@@ -951,6 +957,8 @@ function startScroll(){
 }
 function stopScroll(){ if(scrollTimer){ clearInterval(scrollTimer); scrollTimer = null; } S.scrollOn = false; }
 function syncScrollUI(){
+  var rb = $('btnScrollRail'); if(rb) rb.classList.toggle('on', S.scrollOn);
+  var ri = $('scrollRailIcon'); if(ri) ri.textContent = S.scrollOn? '⏸' : '⏬';
   var ms = $('mScrollSub'); if(ms) ms.textContent = S.scrollOn? 'On — tap to stop' : 'Off — tap to start';
   $('scrollToggle').textContent = S.scrollOn? 'On — tap to stop' : 'Off — tap to start';
   $('scrollToggle').classList.toggle('on', S.scrollOn);
@@ -958,6 +966,7 @@ function syncScrollUI(){
   row.querySelectorAll('.chip').forEach(function(c, i){ c.classList.toggle('on', i+1 === S.scrollSpeed); });
 }
 $('mScroll').addEventListener('click', function(){ if(S.scrollOn){ stopScroll(); syncScrollUI(); } else startScroll(); });
+$('btnScrollRail').addEventListener('click', function(){ if(S.scrollOn){ stopScroll(); syncScrollUI(); } else startScroll(); });
 $('scrollToggle').addEventListener('click', function(){ if(S.scrollOn){ stopScroll(); syncScrollUI(); } else startScroll(); });
 /* ================= sheets ================= */
 var kbSheetIdx = -1;
@@ -1370,10 +1379,10 @@ function runStreak(){
 $('welcomeBtn').addEventListener('click', function(){ $('welcomeOverlay').classList.remove('open'); chime(); });
 /* ================= keyboard (Neural Band / D-pad) — Chess-style focus zones ================= */
 var focusZone = 'reader', railIdx = 0;
-function railButtons(){ return [$('btnMenu'), $('btnListenTop'), $('btnCompare')]; }
+function railButtons(){ return [$('btnMenu'), $('btnListenTop'), $('btnCompare'), $('btnScrollRail')]; }
 function paintRailFocus(){ railButtons().forEach(function(b,i){ b.classList.toggle('kbFocus', focusZone==='rail' && i===railIdx); }); }
 function setZone(z){ focusZone = z; paintRailFocus(); }
-function setRailIdx(i){ railIdx = ((i % 3) + 3) % 3; paintRailFocus(); }
+function setRailIdx(i){ var n = railButtons().length; railIdx = ((i % n) + n) % n; paintRailFocus(); }
 function sheetFocusables(sheet){
   return Array.prototype.slice.call(sheet.querySelectorAll('.lrow, .chip, .chapBtn, .xBtn, .btn')).filter(function(el){ return el.offsetParent !== null; });
 }
@@ -1456,6 +1465,8 @@ setTimeout(function(){
 $('splash').addEventListener('click', function(){ $('splash').classList.remove('open'); });
 /* ================= init ================= */
 applyLook(); updateSavedBtn(); refreshChrome();
+setZone('reader');
+if(document.activeElement && document.activeElement !== document.body && document.activeElement.blur) document.activeElement.blur();
 function initCatalogs(){
   Promise.all([
     fetchJSON('https://bolls.life/static/bolls/app/views/languages.json').catch(function(){ return null; }),
