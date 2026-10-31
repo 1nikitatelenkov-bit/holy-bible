@@ -13,15 +13,20 @@
   body{background:#14120f;display:flex;align-items:center;justify-content:center;
        font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
        color:#ece7db;overflow:hidden}
-  #stage{width:100vmin;height:100vmin;display:flex;flex-direction:column;gap:.8vmin;
+  #stage{width:100vmin;height:100vmin;display:flex;flex-direction:row;gap:.9vmin;
          padding:1.2vmin;background:#26231f;position:relative}
+  #main{flex:1;min-width:0;display:flex;flex-direction:column;gap:.8vmin}
+  /* left rail (like the Chess Display) — buttons grouped at vertical center, the reachable zone */
+  #rail{flex:0 0 auto;width:12.5vmin;display:flex;flex-direction:column;justify-content:center;gap:1.1vmin}
+  .railBtn{background:#3a372f;color:#ece7db;border:none;border-radius:1.2vmin;
+        padding:1.7vmin .3vmin;display:flex;flex-direction:column;align-items:center;gap:.45vmin;
+        cursor:pointer;font-family:inherit}
+  .railBtn .ri{font-size:3.4vmin;line-height:1.1}
+  .railBtn .rl{font-size:1.65vmin;font-weight:700;white-space:nowrap}
+  .railBtn:active{background:#4c483e}
+  .railBtn.on{background:#8a6d1f;color:#fff}
   /* header */
   #topbar{display:flex;align-items:center;gap:.8vmin;height:5.6vmin;padding:0 .4vmin}
-  #topBtns{display:flex;gap:.7vmin;flex:0 0 auto}
-  .topBtn{background:#3a372f;color:#ece7db;border:none;border-radius:1.1vmin;
-        padding:1vmin 1.1vmin;font-size:2vmin;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
-  .topBtn:active{background:#4c483e}
-  .topBtn.on{background:#8a6d1f;color:#fff}
   #cross{width:4.8vmin;height:4.8vmin;border-radius:1vmin;background:#3a372f;flex:0 0 auto;
          display:flex;align-items:center;justify-content:center;font-size:3vmin;color:#ffb300}
   #ttl{flex:1;min-width:0}
@@ -136,6 +141,12 @@
 </head>
 <body>
 <div id="stage">
+  <div id="rail">
+    <button class="railBtn" id="btnMenu"><span class="ri">☰</span><span class="rl">Menu</span></button>
+    <button class="railBtn" id="btnListenTop"><span class="ri" id="listenIcon">📢</span><span class="rl">Listen</span></button>
+    <button class="railBtn" id="btnCompare"><span class="ri">⇄</span><span class="rl" id="cmpLabel">Compare</span></button>
+  </div>
+  <div id="main">
   <div id="topbar">
     <div id="cross">✝</div>
     <div id="ttl">
@@ -143,11 +154,6 @@
       <div class="t2" id="subTitle">Loading translations…</div>
     </div>
     <div id="streakChip" title="Day streak">Day 0</div>
-    <div id="topBtns">
-      <button class="topBtn" id="btnMenu">☰ Menu</button>
-      <button class="topBtn" id="btnListenTop" title="Listen">📢</button>
-      <button class="topBtn" id="btnCompare">⇄ Compare</button>
-    </div>
   </div>
 
   <div id="refbar">
@@ -171,6 +177,8 @@
     <button class="btn" id="vbListen">🔊 Listen</button>
     <button class="btn" id="vbClear">✕ Clear</button>
   </div>
+
+  </div><!-- /#main -->
 
   <!-- Menu sheet: everything lives here now -->
   <div class="sheet" id="menuSheet">
@@ -671,7 +679,7 @@ function syncCompareUI(){
   var on = !!(S.cmpOn && S.cmpTrans);
   var b = $('btnCompare');
   b.classList.toggle('on', on);
-  b.textContent = on? '⇄ ' + cmpAbbr() : '⇄ Compare';
+  $('cmpLabel').textContent = on? cmpAbbr() : 'Compare';
   var sub = $('mCompareSub');
   if(sub) sub.textContent = S.cmpTrans? ((S.cmpOn? 'On — ' : 'Off — ') + (S.cmpTrans.name || S.cmpTrans.id)) : 'Off — tap to choose a translation';
 }
@@ -852,7 +860,7 @@ function speakFrom(idx){
   var rate = 0.8 + S.scrollSpeed * 0.08;
   function next(i){
     if(run !== speakRun) return;
-    if(i >= S.verses.length){ S.speakingIdx = -1; markSpeaking(); $('btnListenTop').textContent='📢'; $('btnListenTop').classList.remove('on'); return; }
+    if(i >= S.verses.length){ S.speakingIdx = -1; markSpeaking(); $('listenIcon').textContent='📢'; $('btnListenTop').classList.remove('on'); return; }
     S.speakingIdx = i; markSpeaking();
     var vs = S.verses[i];
     var u = new SpeechSynthesisUtterance(vs.text);
@@ -865,7 +873,7 @@ function speakFrom(idx){
     u.onerror = function(){ next(i+1); };
     speechSynthesis.speak(u);
   }
-  $('btnListenTop').textContent = '⏹'; $('btnListenTop').classList.add('on');
+  $('listenIcon').textContent = '⏹'; $('btnListenTop').classList.add('on');
   next(idx);
 }
 function markSpeaking(){
@@ -881,7 +889,7 @@ function stopSpeak(){
   S.speakingIdx = -1;
   var els = $('reader').querySelectorAll('.verse');
   els.forEach(function(el){ el.classList.remove('speaking'); });
-  $('btnListenTop').textContent = '📢'; $('btnListenTop').classList.remove('on');
+  $('listenIcon').textContent = '📢'; $('btnListenTop').classList.remove('on');
 }
 $('btnListenTop').addEventListener('click', function(){
   if(S.speakingIdx >= 0){ stopSpeak(); return; }
