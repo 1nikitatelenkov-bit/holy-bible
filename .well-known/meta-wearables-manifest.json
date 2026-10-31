@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "name": "Holy Bible",
+  "description": "The Bible on Meta Ray-Ban Display glasses: read, listen, search and compare translations in English, Russian and Ukrainian.",
+  "appearance": {
+    "theme_color": "#E9CE8C",
+    "icon": { "src": "../icon-mono.png", "type": "monochrome" },
+    "icon_background": {
+      "colors": ["#A97F3D", "#7A5A24", "#46320F", "#211806"],
+      "stops": [0.0, 0.33, 0.7, 1.0],
+      "inner_glow_color": "#F3E3B3"
+    }
+  }
+}
