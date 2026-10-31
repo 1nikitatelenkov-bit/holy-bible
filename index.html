@@ -16,20 +16,19 @@
   #stage{width:100vmin;height:100vmin;display:flex;flex-direction:column;gap:.8vmin;
          padding:1.2vmin;background:#26231f;position:relative}
   /* header */
-  #topbar{display:flex;align-items:center;gap:1.2vmin;height:5.6vmin;padding:0 .4vmin}
+  #topbar{display:flex;align-items:center;gap:.8vmin;height:5.6vmin;padding:0 .4vmin}
+  #topBtns{display:flex;gap:.7vmin;flex:0 0 auto}
+  .topBtn{background:#3a372f;color:#ece7db;border:none;border-radius:1.1vmin;
+        padding:1vmin 1.1vmin;font-size:2vmin;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+  .topBtn:active{background:#4c483e}
+  .topBtn.on{background:#8a6d1f;color:#fff}
   #cross{width:4.8vmin;height:4.8vmin;border-radius:1vmin;background:#3a372f;flex:0 0 auto;
          display:flex;align-items:center;justify-content:center;font-size:3vmin;color:#ffb300}
   #ttl{flex:1;min-width:0}
   #ttl .t1{font-size:2.7vmin;font-weight:700;white-space:nowrap}
   #ttl .t2{font-size:1.9vmin;color:#a49f92;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #streakChip{display:flex;align-items:center;font-size:2.5vmin;font-weight:800;color:#ffb300;padding:0 1vmin;white-space:nowrap}
-  /* pickers */
-  #pickers{display:flex;gap:.8vmin}
-  .pick{flex:1;background:#3a372f;color:#ece7db;border:none;border-radius:1.1vmin;
-        padding:1.15vmin .6vmin;font-size:2.05vmin;font-weight:600;cursor:pointer;font-family:inherit;
-        white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .pick:active{background:#4c483e}
-  .pick small{display:block;font-size:1.55vmin;color:#a49f92;font-weight:400}
+  /* (language / translation pickers now live inside the Menu sheet) */
   /* reference bar */
   #refbar{display:flex;align-items:center;gap:.8vmin}
   #refLabel{flex:1;text-align:center;font-size:2.9vmin;font-weight:700;color:#ffb300;cursor:pointer;padding:.6vmin 0}
@@ -61,8 +60,7 @@
   /* verse action bar */
   #verseBar{display:none;gap:.8vmin}
   #verseBar.show{display:flex}
-  /* bottom controls */
-  #controls{display:flex;gap:.8vmin}
+  /* verse action buttons */
   .btn{flex:1;background:#3a372f;color:#ece7db;border:none;border-radius:1.1vmin;
        padding:1.2vmin 0;font-size:1.8vmin;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}
   .searchBox{background:#211e1a;border:.3vmin solid #3a372f;border-radius:1.1vmin;color:#ece7db;
@@ -97,8 +95,9 @@
   .btn:active{background:#4c483e}
   .btn.on{background:#8a6d1f;color:#fff}
   .btn.gold{background:#ffb300;color:#1d1b18}
-  #help{height:2.6vmin;display:flex;align-items:center;justify-content:center;
-        font-size:1.75vmin;color:#8f8b80;text-align:center}
+  /* compare line under each verse */
+  .cmpVerse{font-size:.8em;color:#b3ac9c;line-height:1.5;padding:.15vmin .7vmin .55vmin 3vmin}
+  .cmpVerse .ca{color:#ffb300;font-weight:700;font-size:.82em;margin-right:.7vmin;font-family:"Segoe UI",system-ui,sans-serif}
   /* sheets */
   .sheet{position:absolute;inset:0;background:#26231f;z-index:30;display:none;flex-direction:column;gap:1vmin;padding:1.6vmin}
   .sheet.open{display:flex}
@@ -144,11 +143,11 @@
       <div class="t2" id="subTitle">Loading translations…</div>
     </div>
     <div id="streakChip" title="Day streak">Day 0</div>
-  </div>
-
-  <div id="pickers">
-    <button class="pick" id="langPick">🌐 Language<small id="langName">English</small></button>
-    <button class="pick" id="transPick">📖 Translation<small id="transName">…</small></button>
+    <div id="topBtns">
+      <button class="topBtn" id="btnMenu">☰ Menu</button>
+      <button class="topBtn" id="btnListenTop" title="Listen">📢</button>
+      <button class="topBtn" id="btnCompare">⇄ Compare</button>
+    </div>
   </div>
 
   <div id="refbar">
@@ -173,14 +172,28 @@
     <button class="btn" id="vbClear">✕ Clear</button>
   </div>
 
-  <div id="controls">
-    <button class="btn" id="btnSearch">🔍 Search</button>
-    <button class="btn" id="btnListen">🔊 Listen</button>
-    <button class="btn" id="btnScroll">⏬ Scroll</button>
-    <button class="btn" id="btnSaved">🔖 Saved</button>
-    <button class="btn" id="btnSettings">Aa Settings</button>
+  <!-- Menu sheet: everything lives here now -->
+  <div class="sheet" id="menuSheet">
+    <div class="sheetHead"><h2>Menu</h2><button class="xBtn" data-close="menuSheet">✕</button></div>
+    <div class="listScroll">
+      <div class="lrow" id="mLang"><div class="lmain"><div class="ltitle">🌐 Language</div><div class="lsub" id="mLangSub">English</div></div><div class="lbadge">›</div></div>
+      <div class="lrow" id="mTrans"><div class="lmain"><div class="ltitle">📖 Translation</div><div class="lsub" id="mTransSub">…</div></div><div class="lbadge">›</div></div>
+      <div class="lrow" id="mBook"><div class="lmain"><div class="ltitle">📚 Book &amp; chapter</div><div class="lsub" id="mBookSub">John 3</div></div><div class="lbadge">›</div></div>
+      <div class="lrow" id="mSearch"><div class="lmain"><div class="ltitle">🔍 Search</div><div class="lsub">Find a verse, or jump to a reference</div></div><div class="lbadge">›</div></div>
+      <div class="lrow" id="mCompare"><div class="lmain"><div class="ltitle">⇄ Compare</div><div class="lsub" id="mCompareSub">Off — tap to choose a translation</div></div><div class="lbadge">›</div></div>
+      <div class="lrow" id="mSaved"><div class="lmain"><div class="ltitle">🔖 Saved verses</div><div class="lsub" id="mSavedSub">Nothing saved yet</div></div><div class="lbadge">›</div></div>
+      <div class="lrow" id="mScroll"><div class="lmain"><div class="ltitle">⏬ Auto-scroll</div><div class="lsub" id="mScrollSub">Off — tap to start</div></div><div class="lbadge">›</div></div>
+      <div class="setGroup"><div class="setLabel">TEXT SIZE</div><div class="chipRow" id="menuSizeRow"></div></div>
+      <div class="lrow" id="mSettings"><div class="lmain"><div class="ltitle">⚙ All settings</div><div class="lsub">Font, scroll speed, voice, YouVersion key</div></div><div class="lbadge">›</div></div>
+    </div>
   </div>
-  <div id="help">Tap a verse to highlight / save • Swipe or ↑ ↓ to move • Pinch / Enter to listen</div>
+
+  <!-- Compare sheet -->
+  <div class="sheet" id="compareSheet">
+    <div class="sheetHead"><h2>Compare with…</h2><button class="xBtn" data-close="compareSheet">✕</button></div>
+    <div class="lempty" style="padding:1vmin 2vmin">Pick a second translation — its text appears under each verse.</div>
+    <div class="listScroll" id="compareList"></div>
+  </div>
 
   <!-- Language sheet -->
   <div class="sheet" id="langSheet">
@@ -404,6 +417,9 @@ var S = {
   scrollOn: false,
   scrollSpeed: settings.scrollSpeed || 3,
   speakingIdx: -1,
+  cmpTrans: null,
+  cmpOn: false,
+  cmpVerses: null,
   catalogsReady: false
 };
 var transByLang = {};   /* langId -> [{src,id,name}] */
@@ -438,7 +454,7 @@ function bookMatch(q){
   }
   return bestBook;
 }
-function saveSettings(){ store.set('bibleDisplay.settings.v1', { langId:S.langId, transSrc:S.trans?S.trans.src:null, transId:S.trans?S.trans.id:null, book:S.book, chapter:S.chapter, fontIdx:S.fontIdx, sizeIdx:S.sizeIdx, scrollSpeed:S.scrollSpeed }); }
+function saveSettings(){ store.set('bibleDisplay.settings.v1', { langId:S.langId, transSrc:S.trans?S.trans.src:null, transId:S.trans?S.trans.id:null, book:S.book, chapter:S.chapter, fontIdx:S.fontIdx, sizeIdx:S.sizeIdx, scrollSpeed:S.scrollSpeed, cmpSrc:S.cmpTrans?S.cmpTrans.src:null, cmpId:S.cmpTrans?S.cmpTrans.id:null, cmpOn:S.cmpOn }); }
 function verseKey(book, ch, v){ return (S.trans? S.trans.src+'|'+S.trans.id : 'none') + '|' + book + '|' + ch + '|' + v; }
 function bookName(bookId){
   if(S.booksList){ for(var i=0;i<S.booksList.length;i++) if(S.booksList[i].bookid===bookId) return S.booksList[i].name; }
@@ -625,6 +641,108 @@ function helloBookId(bookId){
   if(S.booksList){ for(var i=0;i<S.booksList.length;i++) if(S.booksList[i].bookid===bookId && S.booksList[i].helloId) return S.booksList[i].helloId; }
   return BOOKS[bookId-1][2];
 }
+function fetchChapterVerses(trans, book, chapter, aoList){
+  if(trans.src === 'bolls'){
+    return fetchJSON('https://bolls.life/get-text/' + encodeURIComponent(trans.id) + '/' + book + '/' + chapter + '/')
+      .then(function(rows){ return rows.map(function(r){ return {v:r.verse, text:cleanText(r.text)}; }); });
+  }
+  if(trans.src === 'yv'){
+    return yvApi('/bibles/' + encodeURIComponent(trans.id) + '/passages/' + BOOKS[book-1][2] + '.' + chapter + '?format=html&include_headings=false&include_notes=false')
+      .then(function(d){ return yvParseChapter(d.content); });
+  }
+  var hid = BOOKS[book-1][2];
+  if(aoList){ for(var i=0;i<aoList.length;i++) if(aoList[i].bookid===book && aoList[i].helloId){ hid = aoList[i].helloId; break; } }
+  return fetchJSON('https://bible.helloao.org/api/' + encodeURIComponent(trans.id) + '/' + hid + '/' + chapter + '.json')
+    .then(function(d){
+      var out = [];
+      (d.chapter.content||[]).forEach(function(item){
+        if(item.type === 'verse'){
+          var segs = []; aoSegments(item.content, false, segs);
+          var txt = segs.map(function(s){ return s.t; }).join(' ').replace(/\s+/g,' ').trim();
+          out.push({v:item.number, text:txt, segs:segs});
+        }
+      });
+      return out;
+    });
+}
+/* ================= compare ================= */
+function cmpAbbr(){ return S.cmpTrans? (S.cmpTrans.abbr || S.cmpTrans.id) : ''; }
+function syncCompareUI(){
+  var on = !!(S.cmpOn && S.cmpTrans);
+  var b = $('btnCompare');
+  b.classList.toggle('on', on);
+  b.textContent = on? '⇄ ' + cmpAbbr() : '⇄ Compare';
+  var sub = $('mCompareSub');
+  if(sub) sub.textContent = S.cmpTrans? ((S.cmpOn? 'On — ' : 'Off — ') + (S.cmpTrans.name || S.cmpTrans.id)) : 'Off — tap to choose a translation';
+}
+function loadCompareVerses(){
+  S.cmpVerses = null;
+  if(!S.cmpOn || !S.cmpTrans){ syncCompareUI(); return; }
+  var t = S.cmpTrans, bk = S.book, ch = S.chapter;
+  fetchChapterVerses(t, bk, ch, null).then(function(vs){
+    if(S.cmpTrans !== t || S.book !== bk || S.chapter !== ch || !S.cmpOn) return;
+    var map = {};
+    vs.forEach(function(x){ map[x.v] = x.text; });
+    S.cmpVerses = map; renderVerses();
+  }).catch(function(){ if(S.cmpTrans === t && S.cmpOn) S.cmpVerses = {}; });
+  syncCompareUI();
+}
+function resolveCompare(){
+  var wantSrc = S.cmpTrans? S.cmpTrans.src : settings.cmpSrc;
+  var wantId = S.cmpTrans? S.cmpTrans.id : settings.cmpId;
+  var wantOn = S.cmpTrans? S.cmpOn : !!settings.cmpOn;
+  var found = null;
+  if(wantId){
+    for(var lid in transByLang){
+      var list = transByLang[lid] || [];
+      for(var i=0;i<list.length;i++) if(list[i].id===wantId && list[i].src===wantSrc){ found = list[i]; break; }
+      if(found) break;
+    }
+  }
+  S.cmpTrans = found;
+  S.cmpOn = !!(wantOn && found);
+  syncCompareUI();
+}
+function renderCompareList(){
+  var box = $('compareList'); box.innerHTML = '';
+  var any = false;
+  if(S.cmpTrans){
+    var off = document.createElement('div');
+    off.className = 'lrow';
+    off.innerHTML = '<div class="lmain"><div class="ltitle"></div><div class="lsub"></div></div>';
+    off.querySelector('.ltitle').textContent = '✕ Turn compare off';
+    off.querySelector('.lsub').textContent = 'Currently: ' + (S.cmpTrans.name || S.cmpTrans.id);
+    off.addEventListener('click', function(){
+      S.cmpOn = false; S.cmpVerses = null; saveSettings(); syncCompareUI(); renderVerses(); closeSheet('compareSheet');
+    });
+    box.appendChild(off);
+  }
+  var order = ['en','ru','uk'];
+  if(order.indexOf(S.langId) < 0) order.push(S.langId);
+  order.forEach(function(lid){
+    var list = (transByLang[lid] || []).filter(function(t){
+      return t.src !== 'yvLocked' && !(S.trans && t.src===S.trans.src && t.id===S.trans.id);
+    });
+    if(!list.length) return;
+    any = true;
+    var L = null; for(var i=0;i<LANGS.length;i++) if(LANGS[i].id===lid) L = LANGS[i];
+    var lab = document.createElement('div'); lab.className = 'secLabel'; lab.textContent = (L? L.name : lid).toUpperCase();
+    box.appendChild(lab);
+    list.forEach(function(t){
+      var row = document.createElement('div');
+      row.className = 'lrow' + (S.cmpTrans && t.id===S.cmpTrans.id && t.src===S.cmpTrans.src? ' cur' : '');
+      row.innerHTML = '<div class="lmain"><div class="ltitle"></div><div class="lsub"></div></div><div class="lbadge"></div>';
+      row.querySelector('.ltitle').textContent = t.abbr || t.id;
+      row.querySelector('.lsub').textContent = t.name;
+      row.querySelector('.lbadge').textContent = t.src==='bolls'? 'Bolls' : t.src==='ao'? 'HelloAO' : 'YouVersion';
+      row.addEventListener('click', function(){
+        S.cmpTrans = t; S.cmpOn = true; saveSettings(); closeSheet('compareSheet'); syncCompareUI(); loadCompareVerses();
+      });
+      box.appendChild(row);
+    });
+  });
+  if(!any && !S.cmpTrans) box.innerHTML = '<div class="lempty">No other translation is available to compare right now.</div>';
+}
 function loadChapter(){
   stopSpeak(); stopScroll();
   S.selectedVerse = null; $('verseBar').classList.remove('show');
@@ -632,30 +750,10 @@ function loadChapter(){
   var reader = $('reader');
   reader.innerHTML = '<div id="readerMsg">Loading ' + bookName(S.book) + ' ' + S.chapter + '…</div>';
   if(!S.trans){ renderOffline('No translation is available yet for this language in the free catalogs.'); return; }
-  var p;
-  if(S.trans.src === 'bolls'){
-    p = fetchJSON('https://bolls.life/get-text/' + encodeURIComponent(S.trans.id) + '/' + S.book + '/' + S.chapter + '/')
-      .then(function(rows){ return rows.map(function(r){ return {v:r.verse, text:cleanText(r.text)}; }); });
-  } else if(S.trans.src === 'yv'){
-    p = yvApi('/bibles/' + encodeURIComponent(S.trans.id) + '/passages/' + BOOKS[S.book-1][2] + '.' + S.chapter + '?format=html&include_headings=false&include_notes=false')
-      .then(function(d){ return yvParseChapter(d.content); });
-  } else {
-    p = fetchJSON('https://bible.helloao.org/api/' + encodeURIComponent(S.trans.id) + '/' + helloBookId(S.book) + '/' + S.chapter + '.json')
-      .then(function(d){
-        var out = [];
-        (d.chapter.content||[]).forEach(function(item){
-          if(item.type === 'verse'){
-            var segs = []; aoSegments(item.content, false, segs);
-            var txt = segs.map(function(s){ return s.t; }).join(' ').replace(/\s+/g,' ').trim();
-            out.push({v:item.number, text:txt, segs:segs});
-          }
-        });
-        return out;
-      });
-  }
+  var p = fetchChapterVerses(S.trans, S.book, S.chapter, S.booksList);
   p.then(function(verses){
     if(!verses.length) throw new Error('empty');
-    S.verses = verses; renderVerses(); saveSettings();
+    S.verses = verses; renderVerses(); saveSettings(); loadCompareVerses();
   }).catch(function(){ renderOffline('Could not load this chapter — check the connection on your phone.'); });
 }
 function renderOffline(msg){
@@ -694,6 +792,12 @@ function renderVerses(){
     }
     d.addEventListener('click', function(){ selectVerse(vs.v, true); });
     reader.appendChild(d);
+    if(S.cmpOn && S.cmpVerses && S.cmpVerses[vs.v]){
+      var cd = document.createElement('div'); cd.className = 'cmpVerse';
+      var ca = document.createElement('span'); ca.className = 'ca'; ca.textContent = cmpAbbr();
+      cd.appendChild(ca); cd.appendChild(document.createTextNode(S.cmpVerses[vs.v]));
+      reader.appendChild(cd);
+    }
   });
   reader.scrollTop = 0;
   $('refLabel').textContent = bookName(S.book) + ' ' + S.chapter;
@@ -738,7 +842,7 @@ $('vbClear').addEventListener('click', function(){
   S.selectedVerse = null; $('verseBar').classList.remove('show');
   $('reader').querySelectorAll('.verse').forEach(function(el){ el.classList.remove('sel'); });
 });
-function updateSavedBtn(){ $('btnSaved').textContent = '🔖 Saved' + (savedVerses.length? ' ('+savedVerses.length+')' : ''); }
+function updateSavedBtn(){ var el = $('mSavedSub'); if(el) el.textContent = savedVerses.length? savedVerses.length + ' saved' : 'Nothing saved yet'; }
 /* ================= text-to-speech ================= */
 function speakFrom(idx){
   if(!('speechSynthesis' in window)){ $('subTitle').textContent = 'Speech is not available on this device.'; return; }
@@ -748,7 +852,7 @@ function speakFrom(idx){
   var rate = 0.8 + S.scrollSpeed * 0.08;
   function next(i){
     if(run !== speakRun) return;
-    if(i >= S.verses.length){ S.speakingIdx = -1; markSpeaking(); $('btnListen').textContent='🔊 Listen'; $('btnListen').classList.remove('on'); return; }
+    if(i >= S.verses.length){ S.speakingIdx = -1; markSpeaking(); $('btnListenTop').textContent='📢'; $('btnListenTop').classList.remove('on'); return; }
     S.speakingIdx = i; markSpeaking();
     var vs = S.verses[i];
     var u = new SpeechSynthesisUtterance(vs.text);
@@ -761,7 +865,7 @@ function speakFrom(idx){
     u.onerror = function(){ next(i+1); };
     speechSynthesis.speak(u);
   }
-  $('btnListen').textContent = '■ Stop'; $('btnListen').classList.add('on');
+  $('btnListenTop').textContent = '⏹'; $('btnListenTop').classList.add('on');
   next(idx);
 }
 function markSpeaking(){
@@ -777,9 +881,9 @@ function stopSpeak(){
   S.speakingIdx = -1;
   var els = $('reader').querySelectorAll('.verse');
   els.forEach(function(el){ el.classList.remove('speaking'); });
-  $('btnListen').textContent = '🔊 Listen'; $('btnListen').classList.remove('on');
+  $('btnListenTop').textContent = '📢'; $('btnListenTop').classList.remove('on');
 }
-$('btnListen').addEventListener('click', function(){
+$('btnListenTop').addEventListener('click', function(){
   if(S.speakingIdx >= 0){ stopSpeak(); return; }
   var start = 0;
   if(S.selectedVerse!=null){ S.verses.forEach(function(vs,i){ if(vs.v===S.selectedVerse) start=i; }); }
@@ -806,14 +910,13 @@ function startScroll(){
 }
 function stopScroll(){ if(scrollTimer){ clearInterval(scrollTimer); scrollTimer = null; } S.scrollOn = false; }
 function syncScrollUI(){
-  $('btnScroll').textContent = S.scrollOn? '⏸ Scroll' : '⏬ Scroll';
-  $('btnScroll').classList.toggle('on', S.scrollOn);
+  var ms = $('mScrollSub'); if(ms) ms.textContent = S.scrollOn? 'On — tap to stop' : 'Off — tap to start';
   $('scrollToggle').textContent = S.scrollOn? 'On — tap to stop' : 'Off — tap to start';
   $('scrollToggle').classList.toggle('on', S.scrollOn);
   var row = $('speedRow');
   row.querySelectorAll('.chip').forEach(function(c, i){ c.classList.toggle('on', i+1 === S.scrollSpeed); });
 }
-$('btnScroll').addEventListener('click', function(){ if(S.scrollOn){ stopScroll(); syncScrollUI(); } else startScroll(); });
+$('mScroll').addEventListener('click', function(){ if(S.scrollOn){ stopScroll(); syncScrollUI(); } else startScroll(); });
 $('scrollToggle').addEventListener('click', function(){ if(S.scrollOn){ stopScroll(); syncScrollUI(); } else startScroll(); });
 /* ================= sheets ================= */
 function openSheet(id){ $(id).classList.add('open'); }
@@ -871,7 +974,7 @@ function renderTransList(q){
         if(note){ note.style.display = 'block'; note.textContent = '🔒 ' + (t.abbr || t.id) + ' — accept this version\u2019s license in your app at platform.youversion.com, then reopen this list: it unlocks automatically.'; }
         return;
       }
-      S.trans = t; closeSheet('transSheet'); refreshChrome();
+      S.trans = t; if(S.cmpTrans && S.cmpTrans.src===t.src && S.cmpTrans.id===t.id){ S.cmpOn = false; S.cmpVerses = null; } closeSheet('transSheet'); refreshChrome(); syncCompareUI();
       loadBooks().then(function(){ loadChapter(); loadDaily(); });
     });
     box.appendChild(row);
@@ -1004,8 +1107,29 @@ function applyLook(){
   $('reader').style.setProperty('--readerSize', SIZES[S.sizeIdx].css);
 }
 /* picker / nav wiring */
-$('langPick').addEventListener('click', function(){ $('langSearch').value=''; renderLangList(''); openSheet('langSheet'); });
-$('transPick').addEventListener('click', function(){ $('transSearch').value=''; var tn = $('transNote'); if(tn) tn.style.display='none'; renderTransList(''); openSheet('transSheet'); });
+function renderMenuSizes(){
+  var sr = $('menuSizeRow'); if(!sr) return;
+  sr.innerHTML = '';
+  SIZES.forEach(function(s, i){
+    var b = document.createElement('button');
+    b.className = 'chip' + (i===S.sizeIdx? ' on' : ''); b.textContent = s.name;
+    b.addEventListener('click', function(){ S.sizeIdx = i; applyLook(); renderMenuSizes(); saveSettings(); });
+    sr.appendChild(b);
+  });
+}
+function refreshMenu(){
+  refreshChrome(); updateSavedBtn(); syncScrollUI(); syncCompareUI(); renderMenuSizes();
+}
+$('btnMenu').addEventListener('click', function(){ refreshMenu(); openSheet('menuSheet'); });
+$('mLang').addEventListener('click', function(){ closeSheet('menuSheet'); $('langSearch').value=''; renderLangList(''); openSheet('langSheet'); });
+$('mTrans').addEventListener('click', function(){ closeSheet('menuSheet'); $('transSearch').value=''; var tn = $('transNote'); if(tn) tn.style.display='none'; renderTransList(''); openSheet('transSheet'); });
+$('mBook').addEventListener('click', function(){ closeSheet('menuSheet'); $('bookSearch').value=''; renderBookList(''); openSheet('bookSheet'); });
+$('mCompare').addEventListener('click', function(){ closeSheet('menuSheet'); renderCompareList(); openSheet('compareSheet'); });
+$('btnCompare').addEventListener('click', function(){
+  if(!S.cmpTrans){ renderCompareList(); openSheet('compareSheet'); return; }
+  S.cmpOn = !S.cmpOn; saveSettings(); syncCompareUI();
+  if(S.cmpOn) loadCompareVerses(); else { S.cmpVerses = null; renderVerses(); }
+});
 $('refLabel').addEventListener('click', function(){ $('bookSearch').value=''; renderBookList(''); openSheet('bookSheet'); });
 $('langSearch').addEventListener('input', function(){ renderLangList(this.value); });
 $('transSearch').addEventListener('input', function(){ renderTransList(this.value); });
@@ -1091,11 +1215,11 @@ function doVerseSearch(){
       loading.textContent = 'Search took too long or failed — try a shorter word, or a reference like John 3:16.';
     });
 }
-$('btnSearch').addEventListener('click', function(){ renderSearchIdle(); openSheet('searchSheet'); });
+$('mSearch').addEventListener('click', function(){ closeSheet('menuSheet'); renderSearchIdle(); openSheet('searchSheet'); });
 $('verseSearchGo').addEventListener('click', doVerseSearch);
 $('verseSearch').addEventListener('keydown', function(e){ if(e.key === 'Enter') doVerseSearch(); });
-$('btnSaved').addEventListener('click', function(){ renderSavedList(); openSheet('savedSheet'); });
-$('btnSettings').addEventListener('click', function(){ renderSettings(); openSheet('settingsSheet'); });
+$('mSaved').addEventListener('click', function(){ closeSheet('menuSheet'); renderSavedList(); openSheet('savedSheet'); });
+$('mSettings').addEventListener('click', function(){ closeSheet('menuSheet'); renderSettings(); openSheet('settingsSheet'); });
 $('prevChap').addEventListener('click', function(){
   if(S.chapter > 1){ S.chapter--; }
   else if(S.book > 1){ S.book--; S.chapter = bookChapters(S.book); }
@@ -1108,8 +1232,9 @@ $('nextChap').addEventListener('click', function(){
 });
 function refreshChrome(){
   var L = langOf();
-  $('langName').textContent = L.name + ' · ' + L.native;
-  $('transName').textContent = S.trans? (S.trans.abbr || S.trans.id) : '—';
+  var ml = $('mLangSub'); if(ml) ml.textContent = L.name + ' · ' + L.native;
+  var mt = $('mTransSub'); if(mt) mt.textContent = S.trans? (S.trans.name || S.trans.id) : '—';
+  var mb = $('mBookSub'); if(mb) mb.textContent = bookName(S.book) + ' ' + S.chapter;
   $('subTitle').textContent = S.trans? (S.trans.name || S.trans.id) : 'No translation yet for this language';
   $('copyLine').textContent = (S.trans && S.trans.src === 'yv' && S.trans.copyright)? S.trans.copyright : '';
   $('refLabel').textContent = bookName(S.book) + ' ' + S.chapter;
@@ -1244,7 +1369,7 @@ function initCatalogs(){
     fetchYvCatalogs()
   ]).then(function(res){
     buildCatalogs(res[0], res[1], res[2]);
-    pickTranslation();
+    pickTranslation(); resolveCompare();
     refreshChrome();
     return loadBooks();
   }).then(function(){
