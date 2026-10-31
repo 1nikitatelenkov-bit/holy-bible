@@ -1485,6 +1485,12 @@ function initCatalogs(){
 }
 initCatalogs();
 })();
+
+/* Offline: cache the app shell (network-first, so updates arrive) and
+   every chapter fetched, so already-read scripture opens offline. */
+if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(function(){});
+}
 </script>
 </body>
 </html>
