@@ -17,12 +17,12 @@
          padding:1.2vmin;background:#26231f;position:relative}
   #main{flex:1;min-width:0;display:flex;flex-direction:column;gap:.8vmin}
   /* left rail (like the Chess Display) — buttons grouped at vertical center, the reachable zone */
-  #rail{flex:0 0 auto;width:12.5vmin;display:flex;flex-direction:column;justify-content:center;gap:1.1vmin}
+  #rail{flex:0 0 auto;width:14.5vmin;display:flex;flex-direction:column;justify-content:center;gap:1.1vmin}
   .railBtn{background:#3a372f;color:#ece7db;border:none;border-radius:1.2vmin;
         padding:1.7vmin .3vmin;display:flex;flex-direction:column;align-items:center;gap:.45vmin;
         cursor:pointer;font-family:inherit}
-  .railBtn .ri{font-size:3.4vmin;line-height:1.1}
-  .railBtn .rl{font-size:1.65vmin;font-weight:700;white-space:nowrap}
+  .railBtn .ri{font-size:3.6vmin;line-height:1.1}
+  .railBtn .rl{font-size:2vmin;font-weight:800;white-space:nowrap}
   .railBtn:active{background:#4c483e}
   .railBtn.on{background:#8a6d1f;color:#fff}
   button:focus{outline:none}
@@ -62,6 +62,8 @@
   /* keyboard / Neural Band focus (Chess-style zones) */
   .railBtn.kbFocus{box-shadow:inset 0 0 0 .45vmin #ffb300}
   .lrow.kbFocus,.chip.kbFocus,.chapBtn.kbFocus,.xBtn.kbFocus,.btn.kbFocus{box-shadow:inset 0 0 0 .4vmin #ffb300}
+  #refLabel{border-radius:.8vmin}
+  #refLabel.kbFocus,.navBtn.kbFocus{box-shadow:inset 0 0 0 .4vmin #ffb300}
   /* verse action buttons */
   .btn{flex:1;background:#3a372f;color:#ece7db;border:none;border-radius:1.1vmin;
        padding:1.2vmin 0;font-size:1.8vmin;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}
@@ -142,7 +144,7 @@
     <button class="railBtn" id="btnMenu"><span class="ri">☰</span><span class="rl">Menu</span></button>
     <button class="railBtn" id="btnListenTop"><span class="ri" id="listenIcon">📢</span><span class="rl">Listen</span></button>
     <button class="railBtn" id="btnCompare"><span class="ri">⇄</span><span class="rl" id="cmpLabel">Compare</span></button>
-    <button class="railBtn" id="btnScrollRail"><span class="ri" id="scrollRailIcon">⏬</span><span class="rl">Scroll</span></button>
+    <button class="railBtn" id="btnScrollRail"><span class="ri" id="scrollRailIcon">⏬</span><span class="rl">Autoscroll</span></button>
   </div>
   <div id="main">
   <div id="topbar">
@@ -177,7 +179,7 @@
       <div class="lrow" id="mSaved"><div class="lmain"><div class="ltitle">🔖 Saved verses</div><div class="lsub" id="mSavedSub">Nothing saved yet</div></div><div class="lbadge">›</div></div>
       <div class="lrow" id="mScroll"><div class="lmain"><div class="ltitle">⏬ Auto-scroll</div><div class="lsub" id="mScrollSub">Off — tap to start</div></div><div class="lbadge">›</div></div>
       <div class="setGroup"><div class="setLabel">TEXT SIZE</div><div class="chipRow" id="menuSizeRow"></div></div>
-      <div class="lrow" id="mSettings"><div class="lmain"><div class="ltitle">⚙ All settings</div><div class="lsub">Font, scroll speed, voice, YouVersion key</div></div><div class="lbadge">›</div></div>
+      <div class="lrow" id="mSettings"><div class="lmain"><div class="ltitle">⚙ All settings</div><div class="lsub">Font, scroll speed, voice</div></div><div class="lbadge">›</div></div>
     </div>
   </div>
 
@@ -262,15 +264,6 @@
         </div>
         <div class="setLabel" style="margin-top:.6vmin">SCROLL SPEED</div>
         <div class="chipRow" id="speedRow"></div>
-      </div>
-      <div class="setGroup">
-        <div class="setLabel">YOUVERSION APP KEY — ENGLISH VERSIONS</div>
-        <input class="searchBox" id="yvKeyInput" type="text" placeholder="Paste your App Key" autocomplete="off" style="margin:0 0 1vmin">
-        <div class="chipRow">
-          <button class="chip" id="yvKeySave">Save key</button>
-          <button class="chip" id="yvKeyClear">Remove key</button>
-        </div>
-        <div class="lsub" id="yvKeyState">English versions load from YouVersion with your free App Key (platform.youversion.com). Russian and Ukrainian don't need it.</div>
       </div>
       <div class="setGroup">
         <div class="setLabel">LISTEN (TEXT-TO-SPEECH)</div>
@@ -521,7 +514,7 @@ function yvBakedKey(){
   }catch(e){ return ''; }
 }
 var YV_STATE = 'nokey'; /* nokey | ok | error */
-function yvKey(){ return store.get('bibleDisplay.yvkey', '') || yvBakedKey(); }
+function yvKey(){ return yvBakedKey(); }
 function yvApi(path){
   return fetch('https://api.youversion.com/v1' + path, {headers:{'X-YVP-App-Key': yvKey()}})
     .then(function(r){ if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
@@ -689,7 +682,7 @@ function loadCompareVerses(){
     if(S.cmpTrans !== t || S.book !== bk || S.chapter !== ch || !S.cmpOn) return;
     var map = {};
     vs.forEach(function(x){ map[x.v] = x.text; });
-    S.cmpVerses = map; renderVerses();
+    S.cmpVerses = map; renderVerses(true);
   }).catch(function(){ if(S.cmpTrans === t && S.cmpOn) S.cmpVerses = {}; });
   syncCompareUI();
 }
@@ -778,8 +771,9 @@ function renderOffline(msg){
     $('reader').innerHTML = '<div id="readerMsg">' + msg + '</div>';
   }
 }
-function renderVerses(){
+function renderVerses(keepScroll){
   var reader = $('reader');
+  var prevTop = keepScroll? reader.scrollTop : 0;
   var L = langOf();
   reader.classList.toggle('rtl', !!L.rtl);
   reader.innerHTML = '';
@@ -810,7 +804,12 @@ function renderVerses(){
       reader.appendChild(cd);
     }
   });
-  reader.scrollTop = 0;
+  if(S.selectedVerse!=null){
+    reader.querySelectorAll('.verse').forEach(function(el){
+      if(Number(el.getAttribute('data-v')) === S.selectedVerse) el.classList.add('sel');
+    });
+  }
+  reader.scrollTop = prevTop;
   $('refLabel').textContent = bookName(S.book) + ' ' + S.chapter;
 }
 function selectVerse(v){
@@ -1136,23 +1135,7 @@ function renderSettings(){
     pr.appendChild(b);
   });
   syncScrollUI();
-  var ks = $('yvKeyState');
-  if(ks) ks.textContent = yvKey()? (YV_STATE === 'error'? 'A key is saved, but YouVersion rejected it — paste the App Key again and save.' : 'App Key saved — English versions come from YouVersion.') : 'English versions load from YouVersion with your free App Key (platform.youversion.com). Russian and Ukrainian don\u2019t need it.';
 }
-$('yvKeySave').addEventListener('click', function(){
-  var v = $('yvKeyInput').value.trim();
-  if(!v) return;
-  store.set('bibleDisplay.yvkey', v);
-  $('yvKeyInput').value = '';
-  closeSheet('settingsSheet');
-  initCatalogs();
-});
-$('yvKeyClear').addEventListener('click', function(){
-  store.set('bibleDisplay.yvkey', '');
-  $('yvKeyInput').value = '';
-  closeSheet('settingsSheet');
-  initCatalogs();
-});
 function applyLook(){
   $('reader').style.setProperty('--readerFont', FONTS[S.fontIdx].stack);
   $('reader').style.setProperty('--readerSize', SIZES[S.sizeIdx].css);
@@ -1179,7 +1162,7 @@ $('mCompare').addEventListener('click', function(){ closeSheet('menuSheet'); ren
 $('btnCompare').addEventListener('click', function(){
   if(!S.cmpTrans){ renderCompareList(); openSheet('compareSheet'); return; }
   S.cmpOn = !S.cmpOn; saveSettings(); syncCompareUI();
-  if(S.cmpOn) loadCompareVerses(); else { S.cmpVerses = null; renderVerses(); }
+  if(S.cmpOn) loadCompareVerses(); else { S.cmpVerses = null; renderVerses(true); }
 });
 $('refLabel').addEventListener('click', function(){ $('bookSearch').value=''; renderBookList(''); openSheet('bookSheet'); });
 $('langSearch').addEventListener('input', function(){ renderLangList(this.value); });
@@ -1381,8 +1364,11 @@ $('welcomeBtn').addEventListener('click', function(){ $('welcomeOverlay').classL
 var focusZone = 'reader', railIdx = 0;
 function railButtons(){ return [$('btnMenu'), $('btnListenTop'), $('btnCompare'), $('btnScrollRail')]; }
 function paintRailFocus(){ railButtons().forEach(function(b,i){ b.classList.toggle('kbFocus', focusZone==='rail' && i===railIdx); }); }
-function setZone(z){ focusZone = z; paintRailFocus(); }
+function setZone(z){ focusZone = z; paintRailFocus(); paintTopFocus(); }
 function setRailIdx(i){ var n = railButtons().length; railIdx = ((i % n) + n) % n; paintRailFocus(); }
+var topIdx = 1;
+function topStops(){ return [$('prevChap'), $('refLabel'), $('nextChap')]; }
+function paintTopFocus(){ topStops().forEach(function(el,i){ el.classList.toggle('kbFocus', focusZone==='top' && i===topIdx); }); }
 function sheetFocusables(sheet){
   return Array.prototype.slice.call(sheet.querySelectorAll('.lrow, .chip, .chapBtn, .xBtn, .btn')).filter(function(el){ return el.offsetParent !== null; });
 }
@@ -1394,10 +1380,11 @@ function moveSheetFocus(sheet, dir){
   items[kbSheetIdx].scrollIntoView({block:'center'});
 }
 document.addEventListener('keydown', function(e){
+ try{
   var anySheet = document.querySelector('.sheet.open');
   if(e.key === 'Escape'){
     if(anySheet){ closeSheet(anySheet.id); return; }
-    if(focusZone === 'rail'){ setZone('reader'); return; }
+    if(focusZone !== 'reader'){ setZone('reader'); return; }
     $('welcomeOverlay').classList.remove('open');
     return;
   }
@@ -1421,12 +1408,20 @@ document.addEventListener('keydown', function(e){
     else if(e.key === 'Enter'){ e.preventDefault(); railButtons()[railIdx].click(); }
     return;
   }
+  if(focusZone === 'top'){
+    if(e.key === 'ArrowLeft'){ e.preventDefault(); topIdx = Math.max(0, topIdx - 1); paintTopFocus(); }
+    else if(e.key === 'ArrowRight'){ e.preventDefault(); topIdx = Math.min(2, topIdx + 1); paintTopFocus(); }
+    else if(e.key === 'ArrowDown'){ e.preventDefault(); setZone('reader'); }
+    else if(e.key === 'Enter'){ e.preventDefault(); topStops()[topIdx].click(); }
+    return;
+  }
   /* reader zone */
   if(e.key === 'ArrowDown' || e.key === 'ArrowUp'){
     e.preventDefault();
     if(!S.verses.length) return;
     var cur = -1;
     S.verses.forEach(function(vs,i){ if(vs.v===S.selectedVerse) cur=i; });
+    if(e.key === 'ArrowUp' && cur <= 0){ topIdx = 1; setZone('top'); return; }
     var nxt = e.key==='ArrowDown'? Math.min(cur+1, S.verses.length-1) : Math.max(cur-1, 0);
     if(cur<0) nxt = 0;
     selectVerse(S.verses[nxt].v);
@@ -1438,6 +1433,7 @@ document.addEventListener('keydown', function(e){
     if(S.selectedVerse==null) selectVerse(S.verses[0].v);
     openVerseOptions();
   }
+ }catch(err){ if(window.console) console.warn('input error', err); }
 });
 /* touch swipes mirror the D-pad zones (swipe left into the rail, right back out) */
 var touchStart = null;
