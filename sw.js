@@ -2,7 +2,10 @@
    App shell: network-first (fresh builds win when online), cache
    fallback so the app opens with no network after the first load.
    Bible API calls: cache-first — scripture text does not change, so
-   every chapter or book list fetched once stays readable offline. */
+   every chapter or book list fetched once stays readable offline.
+   Only successful (ok) responses are cached, so a failed fetch never
+   poisons the offline copy; the app's Download-for-offline action
+   simply fetches every chapter once to fill this cache. */
 var CACHE = 'holy-bible-v1';
 var ASSETS = [
   './',
@@ -17,7 +20,11 @@ self.addEventListener('install', function(e){
   );
 });
 self.addEventListener('activate', function(e){
-  e.waitUntil(self.clients.claim());
+  e.waitUntil(
+    caches.keys().then(function(names){
+      return Promise.all(names.map(function(n){ return n === CACHE ? null : caches.delete(n); }));
+    }).then(function(){ return self.clients.claim(); })
+  );
 });
 self.addEventListener('fetch', function(e){
   if (e.request.method !== 'GET') return;
@@ -25,8 +32,10 @@ self.addEventListener('fetch', function(e){
   if (url.origin === self.location.origin){
     e.respondWith(
       fetch(e.request).then(function(res){
-        var copy = res.clone();
-        caches.open(CACHE).then(function(c){ c.put(e.request, copy); });
+        if (res && res.ok){
+          var copy = res.clone();
+          caches.open(CACHE).then(function(c){ c.put(e.request, copy); });
+        }
         return res;
       }).catch(function(){
         return caches.match(e.request, { ignoreSearch: true });
@@ -37,8 +46,10 @@ self.addEventListener('fetch', function(e){
       caches.match(e.request).then(function(hit){
         if (hit) return hit;
         return fetch(e.request).then(function(res){
-          var copy = res.clone();
-          caches.open(CACHE).then(function(c){ c.put(e.request, copy); });
+          if (res && res.ok){
+            var copy = res.clone();
+            caches.open(CACHE).then(function(c){ c.put(e.request, copy); });
+          }
           return res;
         });
       })

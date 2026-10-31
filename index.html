@@ -179,7 +179,6 @@
       <div class="lrow" id="mCompare"><div class="lmain"><div class="ltitle">⇄ Compare</div><div class="lsub" id="mCompareSub">Off — tap to choose a translation</div></div><div class="lbadge">›</div></div>
       <div class="lrow" id="mSaved"><div class="lmain"><div class="ltitle">🔖 Saved verses</div><div class="lsub" id="mSavedSub">Nothing saved yet</div></div><div class="lbadge">›</div></div>
       <div class="lrow" id="mScroll"><div class="lmain"><div class="ltitle">⏬ Auto-scroll</div><div class="lsub" id="mScrollSub">Off — tap to start</div></div><div class="lbadge">›</div></div>
-      <div class="setGroup"><div class="setLabel">TEXT SIZE</div><div class="chipRow" id="menuSizeRow"></div></div>
       <div class="lrow" id="mSettings"><div class="lmain"><div class="ltitle">⚙ All settings</div><div class="lsub">Font, scroll speed, voice</div></div><div class="lbadge">›</div></div>
     </div>
   </div>
@@ -273,6 +272,10 @@
           <button class="chip" id="ttsStop">■ Stop</button>
         </div>
         <div class="lsub">Reads through the glasses / phone speakers, verse by verse.</div>
+      </div>
+      <div class="setGroup">
+        <div class="setLabel">OFFLINE</div>
+        <div class="lrow" id="setDownload"><div class="lmain"><div class="ltitle" id="setDownloadTitle">⬇ Download for offline</div><div class="lsub" id="setDownloadSub">Make this whole translation readable with no connection</div></div><div class="lbadge" id="setDownloadBadge">›</div></div>
       </div>
     </div>
   </div>
@@ -424,6 +427,7 @@ var S = {
 };
 var transByLang = {};   /* langId -> [{src,id,name}] */
 var highlights = store.get('bibleDisplay.highlights.v1', {});
+var downloads = store.get('bibleDisplay.downloads.v1', {});
 var savedVerses = store.get('bibleDisplay.saved.v1', []);
 var scrollTimer = null, speakRun = 0;
 
@@ -746,6 +750,77 @@ function renderCompareList(){
   });
   if(!any && !S.cmpTrans) box.innerHTML = '<div class="lempty">No other translation is available to compare right now.</div>';
 }
+/* ---------- offline downloads: fetch every chapter of the current translation once;
+   the service worker caches each response, so unopened books open offline afterwards ---------- */
+var dlRun = null;
+function dlKey(trans){ return trans.src + ':' + trans.id; }
+function chapterUrl(trans, book, chapter){
+  if(trans.src === 'bolls') return 'https://bolls.life/get-text/' + encodeURIComponent(trans.id) + '/' + book + '/' + chapter + '/';
+  if(trans.src === 'yv') return 'https://api.youversion.com/v1/bibles/' + encodeURIComponent(trans.id) + '/passages/' + BOOKS[book-1][2] + '.' + chapter + '?format=html&include_headings=false&include_notes=false';
+  return 'https://bible.helloao.org/api/' + encodeURIComponent(trans.id) + '/' + BOOKS[book-1][2] + '/' + chapter + '.json';
+}
+function syncDownloadUI(){
+  var t = $('setDownloadTitle'), s = $('setDownloadSub'), b = $('setDownloadBadge');
+  if(!t || !S.trans) return;
+  var key = dlKey(S.trans);
+  if(dlRun && dlRun.key === key){
+    t.textContent = '⏳ Downloading ' + S.trans.abbr + '…';
+    s.textContent = dlRun.done + ' of ' + dlRun.total + ' chapters — tap to cancel';
+    b.textContent = '✕';
+  } else if(downloads[key]){
+    t.textContent = '✓ ' + S.trans.abbr + ' — downloaded';
+    s.textContent = 'The whole translation reads offline. Tap to remove it.';
+    b.textContent = '›';
+  } else {
+    t.textContent = '⬇ Download ' + S.trans.abbr + ' for offline';
+    s.textContent = 'All 1,189 chapters, one time — best on Wi-Fi. Then every book opens with no connection.';
+    b.textContent = '›';
+  }
+}
+function startDownload(){
+  var trans = S.trans; if(!trans) return;
+  var jobs = [];
+  BOOKS.forEach(function(bk, bi){ for(var c=1;c<=bk[1];c++) jobs.push([bi+1, c]); });
+  var run = { key: dlKey(trans), trans: trans, done:0, ok:0, total: jobs.length, cancelled:false };
+  dlRun = run;
+  syncDownloadUI();
+  loadBooks();
+  var idx = 0;
+  function worker(){
+    if(run.cancelled || dlRun !== run) return;
+    if(idx >= jobs.length){ finishDownload(run); return; }
+    var job = jobs[idx++];
+    fetchChapterVerses(run.trans, job[0], job[1], S.booksList)
+      .then(function(v){ if(v && v.length) run.ok++; })
+      .catch(function(){})
+      .then(function(){ run.done++; syncDownloadUI(); worker(); });
+  }
+  worker(); worker(); worker();
+}
+function finishDownload(run){
+  if(dlRun === run) dlRun = null;
+  if(run.ok === run.total){
+    downloads[run.key] = Date.now();
+    store.set('bibleDisplay.downloads.v1', downloads);
+    toast('✓ ' + run.trans.abbr + ' downloaded — reads fully offline');
+  } else {
+    toast('Download paused at ' + run.ok + ' of ' + run.total + ' chapters — tap Download again to finish the rest');
+  }
+  syncDownloadUI();
+}
+function removeDownload(){
+  var trans = S.trans; if(!trans) return;
+  delete downloads[dlKey(trans)];
+  store.set('bibleDisplay.downloads.v1', downloads);
+  syncDownloadUI();
+  toast('Removing the ' + trans.abbr + ' download…');
+  if(!('caches' in window)) return;
+  caches.open('holy-bible-v1').then(function(cache){
+    var chain = Promise.resolve();
+    BOOKS.forEach(function(bk, bi){ for(var c=1;c<=bk[1];c++){ (function(u){ chain = chain.then(function(){ return cache.delete(u, {ignoreVary:true}).catch(function(){}); }); })(chapterUrl(trans, bi+1, c)); } });
+    return chain;
+  }).then(function(){ toast(trans.abbr + ' download removed'); }).catch(function(){});
+}
 function loadChapter(){
   stopSpeak(); stopScroll(); syncScrollUI();
   S.selectedVerse = null;
@@ -942,6 +1017,12 @@ $('btnListenTop').addEventListener('click', function(){
   speakFrom(start);
 });
 $('ttsPlay').addEventListener('click', function(){ closeSheet('settingsSheet'); speakFrom(0); });
+$('setDownload').addEventListener('click', function(){
+  if(!S.trans) return;
+  if(dlRun && dlRun.key === dlKey(S.trans)){ dlRun.cancelled = true; dlRun = null; syncDownloadUI(); toast('Download cancelled — chapters already fetched stay saved'); return; }
+  if(downloads[dlKey(S.trans)]){ removeDownload(); return; }
+  startDownload();
+});
 $('ttsStop').addEventListener('click', function(){ stopSpeak(); });
 /* ================= autoscroll ================= */
 function startScroll(){
@@ -1114,6 +1195,7 @@ function renderSavedList(){
 }
 /* settings chips */
 function renderSettings(){
+  syncDownloadUI();
   var fr = $('fontRow'); fr.innerHTML = '';
   FONTS.forEach(function(f, i){
     var b = document.createElement('button');
@@ -1142,18 +1224,8 @@ function applyLook(){
   $('reader').style.setProperty('--readerSize', SIZES[S.sizeIdx].css);
 }
 /* picker / nav wiring */
-function renderMenuSizes(){
-  var sr = $('menuSizeRow'); if(!sr) return;
-  sr.innerHTML = '';
-  SIZES.forEach(function(s, i){
-    var b = document.createElement('button');
-    b.className = 'chip' + (i===S.sizeIdx? ' on' : ''); b.textContent = s.name;
-    b.addEventListener('click', function(){ S.sizeIdx = i; applyLook(); renderMenuSizes(); saveSettings(); });
-    sr.appendChild(b);
-  });
-}
 function refreshMenu(){
-  refreshChrome(); updateSavedBtn(); syncScrollUI(); syncCompareUI(); renderMenuSizes();
+  refreshChrome(); updateSavedBtn(); syncScrollUI(); syncCompareUI();
 }
 $('btnMenu').addEventListener('click', function(){ refreshMenu(); openSheet('menuSheet'); });
 $('mLang').addEventListener('click', function(){ closeSheet('menuSheet'); $('langSearch').value=''; renderLangList(''); openSheet('langSheet'); });
