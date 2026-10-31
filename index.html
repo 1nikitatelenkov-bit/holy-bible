@@ -64,6 +64,7 @@
   .lrow.kbFocus,.chip.kbFocus,.chapBtn.kbFocus,.xBtn.kbFocus,.btn.kbFocus{box-shadow:inset 0 0 0 .4vmin #ffb300}
   #refLabel{border-radius:.8vmin}
   #refLabel.kbFocus,.navBtn.kbFocus{box-shadow:inset 0 0 0 .4vmin #ffb300}
+  input.searchBox.kbFocus{border-color:#ffb300;box-shadow:inset 0 0 0 .25vmin #ffb300}
   /* verse action buttons */
   .btn{flex:1;background:#3a372f;color:#ece7db;border:none;border-radius:1.1vmin;
        padding:1.2vmin 0;font-size:1.8vmin;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}
@@ -1249,7 +1250,7 @@ function doVerseSearch(){
       loading.textContent = 'Search took too long or failed — try a shorter word, or a reference like John 3:16.';
     });
 }
-$('mSearch').addEventListener('click', function(){ closeSheet('menuSheet'); renderSearchIdle(); openSheet('searchSheet'); });
+$('mSearch').addEventListener('click', function(){ closeSheet('menuSheet'); renderSearchIdle(); openSheet('searchSheet'); setTimeout(function(){ $('verseSearch').focus(); }, 80); });
 $('verseSearchGo').addEventListener('click', doVerseSearch);
 $('verseSearch').addEventListener('keydown', function(e){ if(e.key === 'Enter') doVerseSearch(); });
 $('mSaved').addEventListener('click', function(){ closeSheet('menuSheet'); renderSavedList(); openSheet('savedSheet'); });
@@ -1370,7 +1371,7 @@ var topIdx = 1;
 function topStops(){ return [$('prevChap'), $('refLabel'), $('nextChap')]; }
 function paintTopFocus(){ topStops().forEach(function(el,i){ el.classList.toggle('kbFocus', focusZone==='top' && i===topIdx); }); }
 function sheetFocusables(sheet){
-  return Array.prototype.slice.call(sheet.querySelectorAll('.lrow, .chip, .chapBtn, .xBtn, .btn')).filter(function(el){ return el.offsetParent !== null; });
+  return Array.prototype.slice.call(sheet.querySelectorAll('.lrow, .chip, .chapBtn, .xBtn, .btn, input.searchBox')).filter(function(el){ return el.offsetParent !== null; });
 }
 function moveSheetFocus(sheet, dir){
   var items = sheetFocusables(sheet);
@@ -1383,11 +1384,13 @@ document.addEventListener('keydown', function(e){
  try{
   var anySheet = document.querySelector('.sheet.open');
   if(e.key === 'Escape'){
+    if(document.activeElement && document.activeElement.tagName === 'INPUT'){ document.activeElement.blur(); return; }
     if(anySheet){ closeSheet(anySheet.id); return; }
     if(focusZone !== 'reader'){ setZone('reader'); return; }
     $('welcomeOverlay').classList.remove('open');
     return;
   }
+  if(document.activeElement && document.activeElement.tagName === 'INPUT') return;
   if($('welcomeOverlay').classList.contains('open')){
     if(e.key === 'Enter') $('welcomeBtn').click();
     return;
@@ -1397,7 +1400,7 @@ document.addEventListener('keydown', function(e){
     else if(e.key === 'ArrowUp'){ e.preventDefault(); moveSheetFocus(anySheet, -1); }
     else if(e.key === 'Enter'){
       var items = sheetFocusables(anySheet);
-      if(kbSheetIdx >= 0 && items[kbSheetIdx]){ e.preventDefault(); items[kbSheetIdx].click(); }
+      if(kbSheetIdx >= 0 && items[kbSheetIdx]){ e.preventDefault(); if(items[kbSheetIdx].tagName === 'INPUT') items[kbSheetIdx].focus(); else items[kbSheetIdx].click(); }
     }
     return;
   }
