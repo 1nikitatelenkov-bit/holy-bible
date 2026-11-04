@@ -279,7 +279,7 @@
         <div class="setLabel">OFFLINE</div>
         <div class="lrow" id="setDownload"><div class="lmain"><div class="ltitle" id="setDownloadTitle">⬇ Download for offline</div><div class="lsub" id="setDownloadSub">Make this whole translation readable with no connection</div></div><div class="lbadge" id="setDownloadBadge">›</div></div>
       </div>
-      <div class="lsub" style="text-align:center;padding:1.6vmin 0 .4vmin">Holy Bible · Build 2026.11.04.2 — four-direction navigation</div>
+      <div class="lsub" style="text-align:center;padding:1.6vmin 0 .4vmin">Holy Bible · Build 2026.11.04.3 — four-direction navigation</div>
     </div>
   </div>
 
@@ -1559,9 +1559,19 @@ function sheetNav(sheet, dx, dy){
   if(ri < 0){ kbSheetIdx = 0; paintSheetFocus(sheet); return; }
   if(dx !== 0){
     var nc = ci + dx;
-    if(nc < 0 || nc >= rows[ri].length) return;
-    kbSheetIdx = rows[ri][nc].i;
-    kbGoalX = rows[ri][nc].cx;
+    if(nc >= 0 && nc < rows[ri].length){
+      kbSheetIdx = rows[ri][nc].i;
+      kbGoalX = rows[ri][nc].cx;
+    } else {
+      /* at a row edge (or on a single-control row like the ✕): step into the
+         adjacent row instead of feeling dead — Right enters the next row at
+         its first control, Left the previous row at its last control */
+      var nr2 = ri + dx;
+      if(nr2 < 0 || nr2 >= rows.length) return;
+      var target = dx > 0 ? rows[nr2][0] : rows[nr2][rows[nr2].length - 1];
+      kbSheetIdx = target.i;
+      kbGoalX = target.cx;
+    }
   } else {
     var nr = ri + dy;
     if(nr < 0 || nr >= rows.length) return;
