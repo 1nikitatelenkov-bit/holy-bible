@@ -17,14 +17,23 @@
        color:#ece7db;overflow:hidden}
   #stage{width:100vmin;height:100vmin;display:flex;flex-direction:row;gap:.9vmin;
          padding:1.2vmin;background:#26231f;position:relative}
-  #main{flex:1;min-width:0;display:flex;flex-direction:column;gap:.8vmin}
-  /* left rail (like the Chess Display) — buttons grouped at vertical center, the reachable zone */
-  #rail{flex:0 0 auto;width:14.5vmin;display:flex;flex-direction:column;justify-content:center;gap:1.1vmin}
-  .railBtn{background:#3a372f;color:#ece7db;border:none;border-radius:1.2vmin;
-        padding:1.7vmin .3vmin;display:flex;flex-direction:column;align-items:center;gap:.45vmin;
+  #main{flex:1;min-width:0;display:flex;flex-direction:column;gap:.8vmin;margin-left:7.9vmin}
+  /* left rail — collapsible, Mail Display style: a slim icons-only strip anchored
+     at the TOP; when the rail zone is focused (or hovered on desktop) it widens
+     into an overlay drawer with labels, without reflowing the reader */
+  #rail{position:absolute;top:1.2vmin;bottom:1.2vmin;left:1.2vmin;width:7vmin;z-index:20;
+        display:flex;flex-direction:column;justify-content:flex-start;gap:1.1vmin;
+        background:#26231f;border-radius:1.2vmin;overflow:hidden;padding:.6vmin .55vmin;
+        transition:width .15s ease, box-shadow .15s ease}
+  #rail.expanded, #rail:hover{width:28vmin;box-shadow:1.2vmin 0 3vmin rgba(0,0,0,.5)}
+  .railBtn{background:#3a372f;color:#ece7db;border:none;border-radius:1.2vmin;width:100%;
+        padding:1.5vmin .4vmin;display:flex;flex-direction:row;align-items:center;justify-content:center;
         cursor:pointer;font-family:inherit}
+  #rail.expanded .railBtn, #rail:hover .railBtn{justify-content:flex-start;padding-left:1.5vmin}
   .railBtn .ri{font-size:3.6vmin;line-height:1.1}
-  .railBtn .rl{font-size:2vmin;font-weight:800;white-space:nowrap}
+  .railBtn .rl{font-size:2vmin;font-weight:800;white-space:nowrap;opacity:0;max-width:0;overflow:hidden;
+        padding-left:0;transition:opacity .12s ease, max-width .15s ease, padding-left .15s ease}
+  #rail.expanded .rl, #rail:hover .rl{opacity:1;max-width:20vmin;padding-left:.9vmin}
   .railBtn:active{background:#4c483e}
   .railBtn.on{background:#8a6d1f;color:#fff}
   button:focus{outline:none}
@@ -279,7 +288,7 @@
         <div class="setLabel">OFFLINE</div>
         <div class="lrow" id="setDownload"><div class="lmain"><div class="ltitle" id="setDownloadTitle">⬇ Download for offline</div><div class="lsub" id="setDownloadSub">Make this whole translation readable with no connection</div></div><div class="lbadge" id="setDownloadBadge">›</div></div>
       </div>
-      <div class="lsub" style="text-align:center;padding:1.6vmin 0 .4vmin">Holy Bible · Build 2026.11.04.3 — four-direction navigation</div>
+      <div class="lsub" style="text-align:center;padding:1.6vmin 0 .4vmin">Holy Bible · Build 2026.11.04.4 — collapsible rail</div>
     </div>
   </div>
 
@@ -1508,7 +1517,7 @@ $('welcomeBtn').addEventListener('click', function(){ dismissWelcome(); chime();
 var focusZone = 'reader', railIdx = 0;
 function railButtons(){ return [$('btnMenu'), $('btnListenTop'), $('btnCompare'), $('btnScrollRail')]; }
 function paintRailFocus(){ railButtons().forEach(function(b,i){ b.classList.toggle('kbFocus', focusZone==='rail' && i===railIdx); }); }
-function setZone(z){ focusZone = z; paintRailFocus(); paintTopFocus(); }
+function setZone(z){ focusZone = z; $('rail').classList.toggle('expanded', z === 'rail'); paintRailFocus(); paintTopFocus(); }
 function setRailIdx(i){ var n = railButtons().length; railIdx = ((i % n) + n) % n; paintRailFocus(); }
 var topIdx = 1;
 function topStops(){ return [$('prevChap'), $('refLabel'), $('nextChap')]; }
