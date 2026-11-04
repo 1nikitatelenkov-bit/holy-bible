@@ -762,24 +762,25 @@ function chapterUrl(trans, book, chapter){
   if(trans.src === 'yv') return 'https://api.youversion.com/v1/bibles/' + encodeURIComponent(trans.id) + '/passages/' + BOOKS[book-1][2] + '.' + chapter + '?format=html&include_headings=false&include_notes=false';
   return 'https://bible.helloao.org/api/' + encodeURIComponent(trans.id) + '/' + BOOKS[book-1][2] + '/' + chapter + '.json';
 }
+function transAbbr(trans){ return trans.abbr || trans.id; }
 function syncDownloadUI(){
   var t = $('setDownloadTitle'), s = $('setDownloadSub'), b = $('setDownloadBadge');
   if(!t || !S.trans) return;
-  var key = dlKey(S.trans);
+  var key = dlKey(S.trans), ab = transAbbr(S.trans);
   if(dlRun && dlRun.key === key){
-    t.textContent = '⏳ Downloading ' + S.trans.abbr + '…';
+    t.textContent = '⏳ Downloading ' + ab + '…';
     s.textContent = dlRun.done + ' of ' + dlRun.total + ' chapters — tap to cancel';
     b.textContent = '✕';
   } else if(downloads[key] && typeof downloads[key] === 'number'){
-    t.textContent = '✓ ' + S.trans.abbr + ' — available offline';
+    t.textContent = '✓ ' + ab + ' — available offline';
     s.textContent = 'The whole translation is saved on this device. Tap to remove it.';
     b.textContent = '›';
   } else if(downloads[key]){
-    t.textContent = '⬇ Download ' + S.trans.abbr + ' for offline';
+    t.textContent = '⬇ Download ' + ab + ' for offline';
     s.textContent = downloads[key].ok + ' of ' + downloads[key].total + ' chapters saved — tap to finish the rest';
     b.textContent = '›';
   } else {
-    t.textContent = '⬇ Download ' + S.trans.abbr + ' for offline';
+    t.textContent = '⬇ Download ' + ab + ' for offline';
     s.textContent = 'All 1,189 chapters, one time — best on Wi-Fi. Then every book opens with no connection.';
     b.textContent = '›';
   }
@@ -809,7 +810,7 @@ function finishDownload(run){
   if(run.ok === run.total){
     downloads[run.key] = Date.now();
     store.set('bibleDisplay.downloads.v1', downloads);
-    toast('✓ ' + run.trans.abbr + ' downloaded — available offline');
+    toast('✓ ' + transAbbr(run.trans) + ' downloaded — available offline');
   } else {
     downloads[run.key] = { ok: run.ok, total: run.total };
     store.set('bibleDisplay.downloads.v1', downloads);
@@ -822,13 +823,13 @@ function removeDownload(){
   delete downloads[dlKey(trans)];
   store.set('bibleDisplay.downloads.v1', downloads);
   syncDownloadUI();
-  toast('Removing the ' + trans.abbr + ' download…');
+  toast('Removing the ' + transAbbr(trans) + ' download…');
   if(!('caches' in window)) return;
   caches.open('holy-bible-v1').then(function(cache){
     var chain = Promise.resolve();
     BOOKS.forEach(function(bk, bi){ for(var c=1;c<=bk[1];c++){ (function(u){ chain = chain.then(function(){ return cache.delete(u, {ignoreVary:true}).catch(function(){}); }); })(chapterUrl(trans, bi+1, c)); } });
     return chain;
-  }).then(function(){ toast(trans.abbr + ' download removed'); }).catch(function(){});
+  }).then(function(){ toast(transAbbr(trans) + ' download removed'); }).catch(function(){});
 }
 function loadChapter(){
   stopSpeak(); stopScroll(); syncScrollUI();
