@@ -279,7 +279,7 @@
         <div class="setLabel">OFFLINE</div>
         <div class="lrow" id="setDownload"><div class="lmain"><div class="ltitle" id="setDownloadTitle">⬇ Download for offline</div><div class="lsub" id="setDownloadSub">Make this whole translation readable with no connection</div></div><div class="lbadge" id="setDownloadBadge">›</div></div>
       </div>
-      <div class="lsub" style="text-align:center;padding:1.6vmin 0 .4vmin">Holy Bible · Build 2026.11.04 — Back is the middle-finger pinch</div>
+      <div class="lsub" style="text-align:center;padding:1.6vmin 0 .4vmin">Holy Bible · Build 2026.11.04.2 — four-direction navigation</div>
     </div>
   </div>
 
@@ -1085,7 +1085,7 @@ function navRenderClose(id){
   var el = $(id); if(!el) return;
   el.classList.remove('open');
   el.querySelectorAll('.kbFocus').forEach(function(x){ x.classList.remove('kbFocus'); });
-  kbSheetIdx = -1;
+  kbSheetIdx = -1; kbGoalX = null;
 }
 function navRenderTop(){
   var top = navStack[navStack.length - 1];
@@ -1115,9 +1115,9 @@ window.addEventListener('popstate', function(e){
   histLen = target;
   navRenderTop();
 });
-function openSheet(id){ kbSheetIdx = -1; $(id).classList.add('open'); var i = navStack.indexOf(id); if(i >= 0){ navStack.length = i + 1; } else { navStack.push(id); } navOpened = true; navSync(); }
+function openSheet(id){ kbSheetIdx = -1; kbGoalX = null; $(id).classList.add('open'); var i = navStack.indexOf(id); if(i >= 0){ navStack.length = i + 1; } else { navStack.push(id); } navOpened = true; navSync(); }
 function closeSheet(id, toReader){
-  var el = $(id); el.classList.remove('open'); el.querySelectorAll('.kbFocus').forEach(function(x){ x.classList.remove('kbFocus'); }); kbSheetIdx = -1;
+  var el = $(id); el.classList.remove('open'); el.querySelectorAll('.kbFocus').forEach(function(x){ x.classList.remove('kbFocus'); }); kbSheetIdx = -1; kbGoalX = null;
   if(toReader) navToReader = true; else navClosedIds.push(id);
   navSync();
 }
@@ -1515,12 +1515,61 @@ function paintTopFocus(){ topStops().forEach(function(el,i){ el.classList.toggle
 function sheetFocusables(sheet){
   return Array.prototype.slice.call(sheet.querySelectorAll('.lrow, .chip, .chapBtn, .xBtn, .btn, input.searchBox')).filter(function(el){ return el.offsetParent !== null; });
 }
-function moveSheetFocus(sheet, dir){
+/* Four-direction sheet navigation: focusables form a geometric (row, col)
+   grid measured from the live layout. Left/Right move within a row;
+   Up/Down jump to the nearest control in the row above/below — same column
+   when one exists, otherwise the closest control in that row (kbGoalX keeps
+   the column across consecutive vertical moves). One-column lists are just
+   grids with one control per row, so Up/Down stay primary there. */
+var kbGoalX = null;
+function sheetGrid(sheet){
+  var geo = sheetFocusables(sheet).map(function(el, i){
+    var r = el.getBoundingClientRect();
+    return { i: i, cx: r.left + r.width / 2, cy: r.top + r.height / 2, h: r.height };
+  });
+  var rows = [];
+  geo.forEach(function(g){
+    var row = null;
+    for(var k = 0; k < rows.length; k++){ if(Math.abs(rows[k][0].cy - g.cy) < Math.min(rows[k][0].h, g.h) / 2){ row = rows[k]; break; } }
+    if(!row){ row = []; rows.push(row); }
+    row.push(g);
+  });
+  rows.sort(function(a, b){ return a[0].cy - b[0].cy; });
+  rows.forEach(function(r){ r.sort(function(a, b){ return a.cx - b.cx; }); });
+  return rows;
+}
+function paintSheetFocus(sheet){
+  var items = sheetFocusables(sheet);
+  items.forEach(function(el, i){ el.classList.toggle('kbFocus', i === kbSheetIdx); });
+  if(kbSheetIdx >= 0 && items[kbSheetIdx]) items[kbSheetIdx].scrollIntoView({block: 'center'});
+}
+function sheetNav(sheet, dx, dy){
   var items = sheetFocusables(sheet);
   if(!items.length) return;
-  kbSheetIdx = kbSheetIdx < 0? (dir > 0? 0 : items.length - 1) : ((kbSheetIdx + dir) % items.length + items.length) % items.length;
-  items.forEach(function(el,i){ el.classList.toggle('kbFocus', i===kbSheetIdx); });
-  items[kbSheetIdx].scrollIntoView({block:'center'});
+  if(kbSheetIdx < 0 || kbSheetIdx >= items.length){
+    kbSheetIdx = dy < 0 ? items.length - 1 : 0;
+    var r0 = items[kbSheetIdx].getBoundingClientRect();
+    kbGoalX = r0.left + r0.width / 2;
+    paintSheetFocus(sheet);
+    return;
+  }
+  var rows = sheetGrid(sheet), ri = -1, ci = -1;
+  rows.forEach(function(row, r){ row.forEach(function(g, c){ if(g.i === kbSheetIdx){ ri = r; ci = c; } }); });
+  if(ri < 0){ kbSheetIdx = 0; paintSheetFocus(sheet); return; }
+  if(dx !== 0){
+    var nc = ci + dx;
+    if(nc < 0 || nc >= rows[ri].length) return;
+    kbSheetIdx = rows[ri][nc].i;
+    kbGoalX = rows[ri][nc].cx;
+  } else {
+    var nr = ri + dy;
+    if(nr < 0 || nr >= rows.length) return;
+    if(kbGoalX == null) kbGoalX = rows[ri][ci].cx;
+    var best = null, bd = 1e18;
+    rows[nr].forEach(function(g){ var d = Math.abs(g.cx - kbGoalX); if(d < bd){ bd = d; best = g; } });
+    if(best) kbSheetIdx = best.i;
+  }
+  paintSheetFocus(sheet);
 }
 document.addEventListener('keydown', function(e){
  try{
@@ -1542,8 +1591,10 @@ document.addEventListener('keydown', function(e){
     return;
   }
   if(anySheet){
-    if(e.key === 'ArrowDown'){ e.preventDefault(); moveSheetFocus(anySheet, 1); }
-    else if(e.key === 'ArrowUp'){ e.preventDefault(); moveSheetFocus(anySheet, -1); }
+    if(e.key === 'ArrowDown'){ e.preventDefault(); sheetNav(anySheet, 0, 1); }
+    else if(e.key === 'ArrowUp'){ e.preventDefault(); sheetNav(anySheet, 0, -1); }
+    else if(e.key === 'ArrowRight'){ e.preventDefault(); sheetNav(anySheet, 1, 0); }
+    else if(e.key === 'ArrowLeft'){ e.preventDefault(); sheetNav(anySheet, -1, 0); }
     else if(e.key === 'Enter'){
       var items = sheetFocusables(anySheet);
       if(kbSheetIdx >= 0 && items[kbSheetIdx]){ e.preventDefault(); if(items[kbSheetIdx].tagName === 'INPUT') items[kbSheetIdx].focus(); else items[kbSheetIdx].click(); }
